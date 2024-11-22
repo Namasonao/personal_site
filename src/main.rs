@@ -1,39 +1,64 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 type NoteId = u64;
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Note {
     text: String,
     date: u64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct NoteEntry {
     note: Note,
     id: NoteId,
 }
 
-fn save_note(n: Note) -> NoteEntry {
-    println!("{:?}", n);
-    let id = 0;
-    return NoteEntry{note: n, id: id};
-}
 
 trait NoteDB {
     fn save(&mut self, n: Note) -> NoteEntry;
-    fn get_by_id(&self, id: &NoteId) -> NoteEntry;
+    fn get(&self, id: &NoteId) -> NoteEntry;
     fn edit(&mut self, id: &NoteId, n: Note) -> NoteEntry;
 }
 
 fn main() {
-    let my_note = Note {
-        text: "This is an example note.\n".to_string(),
-        date: SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_millis() as u64,
-    };
+    println!("Hello");
+}
 
-    let entry = save_note(my_note);
-    println!("{:?}", entry);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_goodtest() {
+        assert_eq!(1+1,2);
+    }
+
+    fn test_note_db(mut db: Box<dyn NoteDB>) {
+        let my_note1 = Note {
+            text: "This is an example note.\n".to_string(),
+            date: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_millis() as u64,
+        };
+        let my_note2 = Note {
+            text: "This note stores some other random info".to_string(),
+            date: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_millis() as u64,
+        };
+
+        let entry1 = db.save(my_note1);
+        let entry2 = db.save(my_note2);
+        assert_ne!(entry1.id, entry2.id);
+
+        let get1 = db.get(&entry1.id);
+        let get2 = db.get(&entry2.id);
+        let get3 = db.get(&entry1.id);
+        assert_eq!(get1, entry1);
+        assert_eq!(get2, entry2);
+        assert_eq!(get3, entry1);
+    }
 }
