@@ -1,14 +1,21 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-type NoteId = u64;
+pub type NoteId = u64;
+
 #[derive(Debug, PartialEq, Clone)]
-struct Note {
-    text: String,
-    date: u64,
+pub struct Note {
+    pub text: String,
+    pub date: u64,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct NoteEntry {
+    pub note: Note,
+    pub id: NoteId,
 }
 
 impl Note {
-    fn new_str(s: &str) -> Note {
+    pub fn new_str(s: &str) -> Note {
         Note {
             text: s.to_string(),
             date: SystemTime::now()
@@ -17,7 +24,7 @@ impl Note {
                 .as_millis() as u64,
         }
     }
-    fn new(s: String) -> Note {
+    pub fn new(s: String) -> Note {
         Note {
             text: s,
             date: SystemTime::now()
@@ -28,77 +35,18 @@ impl Note {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-struct NoteEntry {
-    note: Note,
-    id: NoteId,
-}
 
-trait NoteDB {
+pub trait NoteDB {
     fn save(&mut self, n: &Note) -> NoteId;
     fn get(&self, id: &NoteId) -> Option<NoteEntry>;
     fn edit(&mut self, id: &NoteId, n: &Note);
     fn iter(&self) -> Vec<NoteEntry>;
 }
 
-struct NoDB {
-    entries: Vec<NoteEntry>,
-    next_id: NoteId,
-}
-impl NoteDB for NoDB {
-    fn save(&mut self, n: &Note) -> NoteId {
-        let id = self.next_id;
-        let entry = NoteEntry {
-            note: n.clone(),
-            id: id,
-        };
-        self.next_id += 1;
-        self.entries.push(entry.clone());
-        id
-    }
-    fn get(&self, id: &NoteId) -> Option<NoteEntry> {
-        for entry in self.entries.iter() {
-            if entry.id == *id {
-                return Some(entry.clone());
-            }
-        }
-        return None;
-    }
-    fn edit(&mut self, id: &NoteId, n: &Note) {
-        for entry in self.entries.iter_mut() {
-            if entry.id == *id {
-                entry.note = n.clone();
-                return;
-            }
-        }
-    }
-
-    fn iter(&self) -> Vec<NoteEntry> {
-        return self.entries.clone();
-    }
-}
-
-fn main() {
-    println!("Hello");
-}
-
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
-    #[test]
-    fn test_goodtest() {
-        assert_eq!(1 + 1, 2);
-    }
-
-    #[test]
-    fn test_nodb_saveget() {
-        let db = NoDB {
-            entries: Vec::new(),
-            next_id: 10,
-        };
-        test_note_db_saveget(Box::new(db))
-    }
 
     fn populate_db(db: &mut Box<dyn NoteDB>) -> i32 {
         let notes = vec![
@@ -118,16 +66,8 @@ mod tests {
         i
     }
 
-    #[test]
-    fn test_nodb_iter() {
-        let db = NoDB {
-            entries: Vec::new(),
-            next_id: 10,
-        };
-        test_note_db_iter(Box::new(db));
-    }
 
-    fn test_note_db_iter(mut db: Box<dyn NoteDB>) {
+    pub fn test_note_db_iter(mut db: Box<dyn NoteDB>) {
         let l = populate_db(&mut db);
         let mut seen: Vec<NoteEntry> = Vec::new();
         let mut i = 0;
@@ -141,21 +81,9 @@ mod tests {
         assert_eq!(i, l);
     }
 
-    fn test_note_db_saveget(mut db: Box<dyn NoteDB>) {
-        let my_note1 = Note {
-            text: "This is an example note.\n".to_string(),
-            date: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("Time went backwards")
-                .as_millis() as u64,
-        };
-        let my_note2 = Note {
-            text: "This note stores some other random info".to_string(),
-            date: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("Time went backwards")
-                .as_millis() as u64,
-        };
+    pub fn test_note_db_saveget(mut db: Box<dyn NoteDB>) {
+        let my_note1 = Note::new_str("This is an example note.\n");
+        let my_note2 = Note::new_str("This note stores some other random info");
 
         let id1 = db.save(&my_note1);
         let id2 = db.save(&my_note2);
