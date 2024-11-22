@@ -35,7 +35,6 @@ impl Note {
     }
 }
 
-
 pub trait NoteDB {
     fn save(&mut self, n: &Note) -> NoteId;
     fn get(&self, id: &NoteId) -> Option<NoteEntry>;
@@ -46,7 +45,6 @@ pub trait NoteDB {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-
 
     fn populate_db(db: &mut Box<dyn NoteDB>) -> i32 {
         let notes = vec![
@@ -65,7 +63,6 @@ pub mod tests {
 
         i
     }
-
 
     pub fn test_note_db_iter(mut db: Box<dyn NoteDB>) {
         let l = populate_db(&mut db);

@@ -1,4 +1,4 @@
-use crate::note_db::{NoteDB, NoteEntry, NoteId, Note};
+use crate::note_db::{Note, NoteDB, NoteEntry, NoteId};
 
 pub struct NoDB {
     entries: Vec<NoteEntry>,
