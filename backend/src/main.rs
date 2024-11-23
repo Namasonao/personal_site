@@ -40,13 +40,13 @@ fn handle_connection(mut stream: TcpStream) {
 
 fn http_respond_file(mut stream: TcpStream, fp: String) {
     // TODO: Check permissions
-    let result = fs::read(fp);
+    let result = fs::read(fp.clone());
     let contents = match result {
         Ok(c) => c,
         Err(e) => {
             let response = "HTTP/1.1 404 NOT FOUND\r\n";
             stream.write_all(response.as_bytes()).unwrap();
-            warn!("{}", e);
+            warn!("fs::read({}) - {}", fp, e);
             return;
         }
     };
