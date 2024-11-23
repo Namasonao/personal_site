@@ -32,6 +32,10 @@ impl NoteDB for NoDB {
         }
     }
 
+    fn delete(&mut self, id: &NoteId) {
+        self.entries.retain(|entry| entry.id != *id);
+    }
+
     fn iter(&self) -> Vec<NoteEntry> {
         return self.entries.clone();
     }
@@ -58,5 +62,14 @@ mod tests {
             next_id: 10,
         };
         test_note_db_iter(Box::new(db));
+    }
+
+    #[test]
+    fn test_nodb_delete() {
+        let db = NoDB {
+            entries: Vec::new(),
+            next_id: 10,
+        };
+        test_note_db_delete(Box::new(db));
     }
 }

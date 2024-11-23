@@ -39,6 +39,7 @@ pub trait NoteDB {
     fn save(&mut self, n: &Note) -> NoteId;
     fn get(&self, id: &NoteId) -> Option<NoteEntry>;
     fn edit(&mut self, id: &NoteId, n: &Note);
+    fn delete(&mut self, id: &NoteId);
     fn iter(&self) -> Vec<NoteEntry>;
 }
 
@@ -104,5 +105,14 @@ pub mod tests {
         assert_eq!(get1.note, my_note1);
         assert_eq!(get2.note, my_note2);
         assert_eq!(get3.note, my_note1);
+    }
+
+    pub fn test_note_db_delete(mut db: Box<dyn NoteDB>) {
+        let my_note = Note::new_str("This is an example note.\n");
+        let id1 = db.save(&my_note);
+        db.delete(&id1);
+        if let Some(get) = db.get(&id1) {
+            panic!("not deleted");
+        }
     }
 }
