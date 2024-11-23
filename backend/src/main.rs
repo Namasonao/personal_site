@@ -1,8 +1,11 @@
-mod nodb;
-mod note_db;
+//mod nodb;
+//mod note_db;
+mod config;
+use crate::config::*;
 use log::LevelFilter;
 use log::{info, warn};
 use log::{Level, Metadata, Record};
+use std::env;
 use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::net::{TcpListener, TcpStream};
@@ -56,10 +59,21 @@ fn http_respond_file(mut stream: TcpStream, fp: String) {
 }
 
 fn main() {
-    if let Err(e) = log::set_logger(&LOGGER).map(|()| log::set_max_level(LevelFilter::Info)) {
-        println!("NO LOGGER");
+    let args: Vec<String> = env::args().collect();
+    println!("{:?}", args);
+    if args.len() <= 1 {
+        println!("Expected <config.json> argument");
+        return;
+    }
+    let config_fp = args[1].clone();
+    let net_cfg = match parse_config_file(config_fp) {
+        Ok(c) => c,
+        Err(e) => panic!("{}", e),
     };
-    println!("Hello");
+    println!("{:#?}", net_cfg);
+    if let Err(e) = log::set_logger(&LOGGER).map(|()| log::set_max_level(LevelFilter::Info)) {
+        println!("NO LOGGER: {}", e);
+    };
     let listener = match TcpListener::bind("0.0.0.0:7878") {
         Ok(l) => l,
         Err(e) => panic!("{}", e),
