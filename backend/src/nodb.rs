@@ -15,6 +15,7 @@ impl NoteDB for NoDB {
         self.entries.push(entry.clone());
         id
     }
+
     fn get(&self, id: &NoteId) -> Option<NoteEntry> {
         for entry in self.entries.iter() {
             if entry.id == *id {
@@ -22,14 +23,6 @@ impl NoteDB for NoDB {
             }
         }
         return None;
-    }
-    fn edit(&mut self, id: &NoteId, n: &Note) {
-        for entry in self.entries.iter_mut() {
-            if entry.id == *id {
-                entry.note = n.clone();
-                return;
-            }
-        }
     }
 
     fn delete(&mut self, id: &NoteId) {

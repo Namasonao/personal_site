@@ -38,7 +38,6 @@ impl Note {
 pub trait NoteDB {
     fn save(&mut self, n: &Note) -> NoteId;
     fn get(&self, id: &NoteId) -> Option<NoteEntry>;
-    fn edit(&mut self, id: &NoteId, n: &Note);
     fn delete(&mut self, id: &NoteId);
     fn iter(&self) -> Vec<NoteEntry>;
 }
