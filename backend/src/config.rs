@@ -14,7 +14,7 @@ impl fmt::Display for ParseError {
 }
 
 #[derive(Debug)]
-pub struct NetworkConfig {
+pub struct Config {
     pub address: String,
     pub frontend_dir: String,
 }
@@ -26,8 +26,8 @@ fn get_string(v: &serde_json::Value) -> Result<String, ParseError> {
     }
 }
 
-pub fn parse_config_file(fp: String) -> Result<NetworkConfig, ParseError> {
-    let result = fs::read(fp.clone());
+pub fn parse_config_file(fp: &String) -> Result<Config, ParseError> {
+    let result = fs::read(fp);
     let contents = match result {
         Ok(c) => c,
         Err(e) => {
@@ -42,7 +42,7 @@ pub fn parse_config_file(fp: String) -> Result<NetworkConfig, ParseError> {
         }
     };
 
-    return Ok(NetworkConfig {
+    return Ok(Config {
         address: get_string(&cfg["address"])?,
         frontend_dir: get_string(&cfg["frontend_dir"])?,
     });

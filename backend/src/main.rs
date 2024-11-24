@@ -1,32 +1,13 @@
 //mod nodb;
 //mod note_db;
 mod config;
+mod my_logger;
 use crate::config::*;
-use log::LevelFilter;
 use log::{info, warn};
-use log::{Level, Metadata, Record};
 use std::env;
 use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::net::{TcpListener, TcpStream};
-
-struct SimpleLogger;
-
-impl log::Log for SimpleLogger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= Level::Info
-    }
-
-    fn log(&self, record: &Record) {
-        if self.enabled(record.metadata()) {
-            println!("{} - {}", record.level(), record.args());
-        }
-    }
-
-    fn flush(&self) {}
-}
-
-static LOGGER: SimpleLogger = SimpleLogger;
 
 fn handle_connection(mut stream: TcpStream) {
     let buf_reader = BufReader::new(&mut stream);
@@ -66,18 +47,17 @@ fn main() {
         return;
     }
     let config_fp = args[1].clone();
-    let net_cfg = match parse_config_file(config_fp) {
+    let cfg = match parse_config_file(&config_fp) {
         Ok(c) => c,
         Err(e) => panic!("{}", e),
     };
+    my_logger::init();
     println!("{:#?}", net_cfg);
-    if let Err(e) = log::set_logger(&LOGGER).map(|()| log::set_max_level(LevelFilter::Info)) {
-        println!("NO LOGGER: {}", e);
-    };
     let listener = match TcpListener::bind("0.0.0.0:7878") {
         Ok(l) => l,
         Err(e) => panic!("{}", e),
     };
+
 
     for stream in listener.incoming() {
         let stream = match stream {
