@@ -3,7 +3,7 @@
 mod config;
 mod my_logger;
 use crate::config::*;
-use log::{info, warn};
+use crate::my_logger::*;
 use std::env;
 use std::fs;
 use std::io::{prelude::*, BufReader};
@@ -52,7 +52,7 @@ fn main() {
         Err(e) => panic!("{}", e),
     };
     my_logger::init();
-    println!("{:#?}", net_cfg);
+    println!("{:#?}", cfg);
     let listener = match TcpListener::bind("0.0.0.0:7878") {
         Ok(l) => l,
         Err(e) => panic!("{}", e),

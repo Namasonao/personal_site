@@ -1,3 +1,4 @@
+pub use log::{info, warn};
 use log::LevelFilter;
 use log::{Level, Metadata, Record};
 
