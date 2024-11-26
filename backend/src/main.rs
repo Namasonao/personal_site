@@ -9,17 +9,58 @@ use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::net::{TcpListener, TcpStream};
 
-fn handle_connection(mut stream: TcpStream) {
-    let buf_reader = BufReader::new(&mut stream);
+fn parse_http_header(buf_reader: BufReader<&mut TcpStream>) -> Result<HttpHeader, &str> {
     let http_request: Vec<_> = buf_reader
         .lines()
         .map(|result| result.unwrap())
         .take_while(|line| !line.is_empty())
         .collect();
 
-    println!("Request: {http_request:#?}");
+    info!("Request: {http_request:#?}");
+    if http_request.len() == 0 {
+        return Err("Empty");
+    }
+    let l1: Vec<_> = http_request[0].split(' ').collect();
+    if l1.len() < 3 {
+        return Err("Error parsing first line");
+    }
 
-    http_respond_file(stream, "./frontend/index.html".to_string());
+    return Ok(HttpHeader {
+        method:   l1[0].to_string(),
+        path:     l1[1].to_string(),
+        version:  l1[2].to_string(),
+    });
+}
+
+struct HttpHeader {
+    method: String,
+    path: String,
+    version: String,
+}
+
+fn handle_connection(mut stream: TcpStream, frontend_dir: String) {
+    let buf_reader = BufReader::new(&mut stream);
+    let header = match parse_http_header(buf_reader) {
+        Ok(h) => h,
+        Err(e) => {
+            warn!("HTTP Header error: {}", e);
+            http_respond_error(stream);
+            return;
+        },
+    };
+    if header.method != "GET" {
+        warn!("Unsupported method: {}", header.method);
+        http_respond_error(stream);
+        return;
+    }
+
+
+    http_respond_file(stream, frontend_dir + &header.path);
+}
+
+fn http_respond_error(mut stream: TcpStream) {
+    let response = "HTTP/1.1 404 NOT FOUND\r\n";
+    stream.write_all(response.as_bytes()).unwrap();
 }
 
 fn http_respond_file(mut stream: TcpStream, fp: String) {
@@ -28,9 +69,8 @@ fn http_respond_file(mut stream: TcpStream, fp: String) {
     let contents = match result {
         Ok(c) => c,
         Err(e) => {
-            let response = "HTTP/1.1 404 NOT FOUND\r\n";
-            stream.write_all(response.as_bytes()).unwrap();
             warn!("fs::read({}) - {}", fp, e);
+            http_respond_error(stream);
             return;
         }
     };
@@ -53,7 +93,7 @@ fn main() {
     };
     my_logger::init();
     println!("{:#?}", cfg);
-    let listener = match TcpListener::bind("0.0.0.0:7878") {
+    let listener = match TcpListener::bind(&cfg.address) {
         Ok(l) => l,
         Err(e) => panic!("{}", e),
     };
@@ -71,6 +111,6 @@ fn main() {
             "Connection established with {}!",
             stream.peer_addr().unwrap()
         );
-        handle_connection(stream);
+        handle_connection(stream, cfg.frontend_dir.clone());
     }
 }
