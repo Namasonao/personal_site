@@ -55,7 +55,12 @@ fn handle_connection(mut stream: TcpStream, frontend_dir: String) {
     }
 
 
-    http_respond_file(stream, frontend_dir + &header.path);
+    let path_bytes = header.path.as_bytes();
+    if path_bytes[path_bytes.len() - 1] == b'/' {
+        http_respond_file(stream, frontend_dir + &header.path + "index.html");
+    } else {
+        http_respond_file(stream, frontend_dir + &header.path);
+    }
 }
 
 fn http_respond_error(mut stream: TcpStream) {
