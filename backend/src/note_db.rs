@@ -1,6 +1,9 @@
+use crate::nodb::NoDB;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub type NoteId = u64;
+
+static mut DATABASE: NoDB = NoDB::new();
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Note {
@@ -40,6 +43,22 @@ pub trait NoteDB {
     fn get(&self, id: &NoteId) -> Option<NoteEntry>;
     fn delete(&mut self, id: &NoteId);
     fn iter(&self) -> Vec<NoteEntry>;
+}
+
+pub fn save(n: &Note) -> NoteId {
+    unsafe { DATABASE.save(n) }
+}
+
+pub fn get(id: &NoteId) -> Option<NoteEntry> {
+    unsafe { DATABASE.get(id) }
+}
+
+pub fn delete(id: &NoteId) {
+    unsafe { DATABASE.delete(id) }
+}
+
+pub fn iter() -> Vec<NoteEntry> {
+    unsafe { DATABASE.iter() }
 }
 
 #[cfg(test)]

@@ -1,17 +1,36 @@
-use crate::http::HttpHeader;
+use crate::http::Http;
 use crate::info;
+use crate::note_db::{self, Note};
 use crate::TcpStream;
+use serde_json;
 use std::io::Write;
 
 type Response = String;
 enum APIError {
     NotImplemented,
     NotFound,
+    BadRequest,
 }
 
-fn api_add_note() -> Result<Response, APIError> {
+fn get_string(v: &serde_json::Value) -> Result<String, APIError> {
+    match v {
+        serde_json::Value::String(s) => Ok(s.clone()),
+        _ => Err(APIError::BadRequest),
+    }
+}
+
+fn api_add_note(request: Http) -> Result<Response, APIError> {
     info!("Request to add note");
-    return Err(APIError::NotImplemented);
+    let body: serde_json::Value = match serde_json::from_slice(&request.body) {
+        Ok(c) => c,
+        Err(e) => return Err(APIError::BadRequest),
+    };
+    let text: String = get_string(&body["note"])?;
+    let id = note_db::save(&Note::new(text.clone()));
+
+    info!("Stored note {} with text:\n{}", id, text);
+
+    return Ok(id.to_string());
 }
 fn hello_world() -> Result<Response, APIError> {
     return Ok("Hello world!".to_string());
@@ -19,23 +38,19 @@ fn hello_world() -> Result<Response, APIError> {
 
 fn respond_error(mut stream: TcpStream, e: APIError) {
     use APIError::*;
-    match e {
-        NotFound => {
-            let response = "HTTP/1.1 404 NOT FOUND\r\n";
-            stream.write_all(response.as_bytes()).unwrap();
-        }
-        NotImplemented => {
-            let response = "HTTP/1.1 501 NOT IMPLEMENTED\r\n";
-            stream.write_all(response.as_bytes()).unwrap();
-        }
+    let response = match e {
+        NotFound => "HTTP/1.1 404 NOT FOUND\r\n",
+        NotImplemented => "HTTP/1.1 501 NOT IMPLEMENTED\r\n",
+        BadRequest => "HTTP/1.1 400 BAD REQUEST\r\n",
     };
+    stream.write_all(response.as_bytes()).unwrap();
 }
 
-pub fn handle_api(mut stream: TcpStream, header: HttpHeader) {
-    let path: Vec<&str> = header.path.split('/').collect();
+pub fn handle_api(mut stream: TcpStream, request: Http) {
+    let path: Vec<&str> = request.header.path.split('/').collect();
 
     let resp_res = match path[2] {
-        "add-note" => api_add_note(),
+        "add-note" => api_add_note(request),
         "hello" => hello_world(),
         _ => Err(APIError::NotFound),
     };

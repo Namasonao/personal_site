@@ -1,9 +1,9 @@
-//mod nodb;
-//mod note_db;
 mod api;
 mod config;
 mod http;
 mod my_logger;
+mod nodb;
+mod note_db;
 use crate::api::handle_api;
 use crate::config::*;
 use crate::http::*;
@@ -23,12 +23,13 @@ fn handle_connection(mut stream: TcpStream, frontend_dir: String) {
             return;
         }
     };
-    let header = http.header;
 
-    if header.path.starts_with("/api") {
-        handle_api(stream, header);
+    if http.header.path.starts_with("/api") {
+        handle_api(stream, http);
         return;
     }
+
+    let header = http.header;
     match header.method {
         Method::Get => {}
         Method::Post => {}

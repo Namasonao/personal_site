@@ -47,6 +47,7 @@ pub fn parse_http(mut buf_reader: BufReader<&mut TcpStream>) -> Result<Http, &'s
         version: version,
         fields: fields,
     };
+    info!("{:?} {} {}", header.method, header.path, header.version);
 
     let mut http_body = Vec::new();
     if header.method == Method::Post {

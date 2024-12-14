@@ -4,6 +4,16 @@ pub struct NoDB {
     entries: Vec<NoteEntry>,
     next_id: NoteId,
 }
+
+impl NoDB {
+    pub const fn new() -> NoDB {
+        NoDB {
+            entries: Vec::new(),
+            next_id: 0,
+        }
+    }
+}
+
 impl NoteDB for NoDB {
     fn save(&mut self, n: &Note) -> NoteId {
         let id = self.next_id;
