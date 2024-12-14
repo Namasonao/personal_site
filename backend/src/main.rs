@@ -2,41 +2,16 @@
 //mod note_db;
 mod config;
 mod my_logger;
+mod api;
+mod http;
 use crate::config::*;
 use crate::my_logger::*;
+use crate::http::parse_http_header;
+use crate::api::handle_api;
 use std::env;
 use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::net::{TcpListener, TcpStream};
-
-fn parse_http_header(buf_reader: BufReader<&mut TcpStream>) -> Result<HttpHeader, &str> {
-    let http_request: Vec<_> = buf_reader
-        .lines()
-        .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
-        .collect();
-
-    info!("Request: {http_request:#?}");
-    if http_request.len() == 0 {
-        return Err("Empty");
-    }
-    let l1: Vec<_> = http_request[0].split(' ').collect();
-    if l1.len() < 3 {
-        return Err("Error parsing first line");
-    }
-
-    return Ok(HttpHeader {
-        method:   l1[0].to_string(),
-        path:     l1[1].to_string(),
-        version:  l1[2].to_string(),
-    });
-}
-
-struct HttpHeader {
-    method: String,
-    path: String,
-    version: String,
-}
 
 fn handle_connection(mut stream: TcpStream, frontend_dir: String) {
     let buf_reader = BufReader::new(&mut stream);
@@ -48,10 +23,19 @@ fn handle_connection(mut stream: TcpStream, frontend_dir: String) {
             return;
         },
     };
-    if header.method != "GET" {
-        warn!("Unsupported method: {}", header.method);
-        http_respond_error(stream);
+
+    if header.path.starts_with("/api") {
+        handle_api(stream, header);
         return;
+    }
+    match header.method.as_str() {
+        "GET" => {},
+        "POST" => {},
+        _ => {
+            warn!("Unsupported method: {}", header.method);
+            http_respond_error(stream);
+            return;
+        }
     }
 
 
