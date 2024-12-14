@@ -1,7 +1,7 @@
 use crate::http::HttpHeader;
+use crate::info;
 use crate::TcpStream;
 use std::io::Write;
-use crate::info;
 
 type Response = String;
 enum APIError {
@@ -23,11 +23,11 @@ fn respond_error(mut stream: TcpStream, e: APIError) {
         NotFound => {
             let response = "HTTP/1.1 404 NOT FOUND\r\n";
             stream.write_all(response.as_bytes()).unwrap();
-        },
+        }
         NotImplemented => {
             let response = "HTTP/1.1 501 NOT IMPLEMENTED\r\n";
             stream.write_all(response.as_bytes()).unwrap();
-        },
+        }
     };
 }
 
@@ -51,4 +51,3 @@ pub fn handle_api(mut stream: TcpStream, header: HttpHeader) {
     stream.write(b"HTTP/1.1 200 OK\r\n\r\n").unwrap();
     stream.write_all(response.as_bytes()).unwrap();
 }
-

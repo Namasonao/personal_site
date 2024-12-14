@@ -1,7 +1,6 @@
-use std::net::TcpStream;
-use std::io::{BufReader, BufRead};
 use crate::info;
-
+use std::io::{BufRead, BufReader};
+use std::net::TcpStream;
 
 pub fn parse_http_header(buf_reader: BufReader<&mut TcpStream>) -> Result<HttpHeader, &str> {
     let http_request: Vec<_> = buf_reader
@@ -20,8 +19,8 @@ pub fn parse_http_header(buf_reader: BufReader<&mut TcpStream>) -> Result<HttpHe
     }
 
     return Ok(HttpHeader {
-        method:   l1[0].to_string(),
-        path:     l1[1].to_string(),
+        method: l1[0].to_string(),
+        path: l1[1].to_string(),
         //version:  l1[2].to_string(),
     });
 }

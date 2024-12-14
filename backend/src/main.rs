@@ -1,13 +1,13 @@
 //mod nodb;
 //mod note_db;
-mod config;
-mod my_logger;
 mod api;
+mod config;
 mod http;
-use crate::config::*;
-use crate::my_logger::*;
-use crate::http::parse_http_header;
+mod my_logger;
 use crate::api::handle_api;
+use crate::config::*;
+use crate::http::parse_http_header;
+use crate::my_logger::*;
 use std::env;
 use std::fs;
 use std::io::{prelude::*, BufReader};
@@ -21,7 +21,7 @@ fn handle_connection(mut stream: TcpStream, frontend_dir: String) {
             warn!("HTTP Header error: {}", e);
             http_respond_error(stream);
             return;
-        },
+        }
     };
 
     if header.path.starts_with("/api") {
@@ -29,15 +29,14 @@ fn handle_connection(mut stream: TcpStream, frontend_dir: String) {
         return;
     }
     match header.method.as_str() {
-        "GET" => {},
-        "POST" => {},
+        "GET" => {}
+        "POST" => {}
         _ => {
             warn!("Unsupported method: {}", header.method);
             http_respond_error(stream);
             return;
         }
     }
-
 
     let path_bytes = header.path.as_bytes();
     if path_bytes[path_bytes.len() - 1] == b'/' {
@@ -86,7 +85,6 @@ fn main() {
         Ok(l) => l,
         Err(e) => panic!("{}", e),
     };
-
 
     for stream in listener.incoming() {
         let stream = match stream {

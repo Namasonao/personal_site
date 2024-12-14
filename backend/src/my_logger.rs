@@ -1,5 +1,5 @@
-pub use log::{info, warn};
 use log::LevelFilter;
+pub use log::{info, warn};
 use log::{Level, Metadata, Record};
 
 struct SimpleLogger;
