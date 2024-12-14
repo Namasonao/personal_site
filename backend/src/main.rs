@@ -6,7 +6,7 @@ mod http;
 mod my_logger;
 use crate::api::handle_api;
 use crate::config::*;
-use crate::http::parse_http_header;
+use crate::http::*;
 use crate::my_logger::*;
 use std::env;
 use std::fs;
@@ -15,27 +15,23 @@ use std::net::{TcpListener, TcpStream};
 
 fn handle_connection(mut stream: TcpStream, frontend_dir: String) {
     let buf_reader = BufReader::new(&mut stream);
-    let header = match parse_http_header(buf_reader) {
+    let http = match parse_http(buf_reader) {
         Ok(h) => h,
         Err(e) => {
-            warn!("HTTP Header error: {}", e);
+            warn!("HTTP error: {}", e);
             http_respond_error(stream);
             return;
         }
     };
+    let header = http.header;
 
     if header.path.starts_with("/api") {
         handle_api(stream, header);
         return;
     }
-    match header.method.as_str() {
-        "GET" => {}
-        "POST" => {}
-        _ => {
-            warn!("Unsupported method: {}", header.method);
-            http_respond_error(stream);
-            return;
-        }
+    match header.method {
+        Method::Get => {}
+        Method::Post => {}
     }
 
     let path_bytes = header.path.as_bytes();
