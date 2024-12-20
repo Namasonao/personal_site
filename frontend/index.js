@@ -1,16 +1,6 @@
 const notes = document.getElementById("note-structure");
 const textbox = document.getElementById("add-note-input");
 
-async function addNoteDb(text) {
-	fetch("/api/add-note", {
-		method: "POST",
-		body: JSON.stringify({
-			note: text,
-		}),
-		headers: {},
-	});
-}
-
 async function onSubmitNotePress(data) {
 	console.log(textbox);
 	const text = textbox.value;
@@ -19,8 +9,17 @@ async function onSubmitNotePress(data) {
 	}
 	const note = {};
 	note.text = text;
-	addNoteToDom(note);
-	addNoteDb(text);
+	const domNote = addNoteToDom(note);
+	const response = await fetch("/api/add-note", {
+		method: "POST",
+		body: JSON.stringify({
+			note: text,
+		}),
+		headers: {},
+	});
+	const id = await response.json();
+	domNote.apiId = id;
+	
 }
 
 async function onDeleteNotePress(data) {
@@ -62,6 +61,7 @@ function addNoteToDom(note) {
 	newNote.apiId = note.id;
 	newNote.appendChild(deleteButton);
 	notes.insertBefore(newNote, notes.children[1]);
+	return newNote;
 }
 
 async function renderNotes() {
