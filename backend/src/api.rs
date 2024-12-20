@@ -1,6 +1,6 @@
 use crate::http::Http;
 use crate::info;
-use crate::note_db::{self, Note};
+use crate::note_db::{self, Note, NoteId};
 use crate::TcpStream;
 use serde_json::{self, json};
 use std::io::Write;
@@ -16,6 +16,17 @@ enum APIError {
 fn get_string(v: &serde_json::Value) -> Result<String, APIError> {
     match v {
         serde_json::Value::String(s) => Ok(s.clone()),
+        _ => Err(APIError::BadRequest),
+    }
+}
+
+fn get_id(v: &serde_json::Value) -> Result<NoteId, APIError> {
+    let n = match v {
+        serde_json::Value::Number(s) => s,
+        _ => return Err(APIError::BadRequest),
+    };
+    match n.as_u64() {
+        Some(s) => Ok(s),
         _ => Err(APIError::BadRequest),
     }
 }
@@ -42,6 +53,8 @@ fn api_get_notes(request: Http) -> Result<Response, APIError> {
     for entry in note_entries.into_iter() {
         let note_json = json!({
             "text": entry.note.text,
+            "id": entry.id,
+            "date": entry.note.date,
         });
         let note = match serde_json::to_string(&note_json) {
             Ok(n) => n,
@@ -54,6 +67,21 @@ fn api_get_notes(request: Http) -> Result<Response, APIError> {
         resp.pop();
     }
     resp += "]";
+    return Ok(resp);
+}
+
+fn api_delete_note(request: Http) -> Result<Response, APIError> {
+    info!("Request to delete notes");
+
+    let body: serde_json::Value = match serde_json::from_slice(&request.body) {
+        Ok(c) => c,
+        Err(e) => return Err(APIError::BadRequest),
+    };
+
+    let id = get_id(&body["id"])?;
+    note_db::delete(&id);
+
+    let resp = "".to_string();
     return Ok(resp);
 }
 
@@ -78,6 +106,7 @@ pub fn handle_api(mut stream: TcpStream, request: Http) {
     let resp_res = match path[2] {
         "add-note" => api_add_note(request),
         "get-notes" => api_get_notes(request),
+        "delete-note" => api_delete_note(request),
         "hello" => hello_world(),
         _ => Err(APIError::NotFound),
     };

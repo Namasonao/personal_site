@@ -1,4 +1,4 @@
-use crate::info;
+use crate::{info, warn};
 use std::io::{BufRead, BufReader, Read};
 use std::net::TcpStream;
 use std::str;
@@ -68,7 +68,9 @@ pub fn parse_http(mut buf_reader: BufReader<&mut TcpStream>) -> Result<Http, &'s
         unsafe {
             http_body.set_len(exp_len);
         }
-        buf_reader.read_exact(&mut http_body);
+        if let Err(e) = buf_reader.read_exact(&mut http_body) {
+            warn!("{}", e);
+        }
     }
 
     // info!("Parsed http.\nHeader: {:#?}\nBody: {:#?}", header, str::from_utf8(&http_body));
