@@ -14,7 +14,7 @@
         font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
         
     }
-    div {
+    .block-div {
         width: 600px;
         margin: 1em auto;
         padding: 1.5em;
@@ -34,27 +34,33 @@
     }
     #note-structure div {
         width: 500px;
+	padding: 0.5em;
+    }
+    .delete-button {
+	float: right;
+    }
+    .note-text {
     }
     </style>    
 </head>
 
 <body>
-<div>
+<div class="block-div">
     <h1>Welcome!</h1>
     <p>This is the website of Basmet. There is nothing to do here. Please go somewhere else.</p>
 </div>
-<div>
+<div class="block-div">
 	<p>You could go <a href="/notes/">here</a></p>
 </div>
 
-<div>
+<div class="block-div">
 	<form id="note-add">
 		<label for="add-note">Text (TODO: make this stuff look nice):</label><br>
 		<input type="text" id="add-note-input" name="text" placeholder="Write down your notes here..." size=80><br>
 		<input type="button" id="add-note-submit" name="button" value="Submit"><br>
 	</form>
 </div>
-<div id="note-structure">
+<div class="block-div" id="note-structure">
 	<h2>NOTES</h2>
 </div>
 <script src="index.js"></script>

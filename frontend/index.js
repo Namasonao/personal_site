@@ -54,14 +54,22 @@ async function getNotesFromDb() {
 function addNoteToDom(note) {
 	const deleteButton = document.createElement("input");
 	deleteButton.type = "button";
+	deleteButton.classList.add("delete-button");
 	deleteButton.addEventListener("click", onDeleteNotePress);
 
-	const newNote = document.createElement("div");
-	newNote.innerText = note.text;
-	newNote.apiId = note.id;
-	newNote.appendChild(deleteButton);
-	notes.insertBefore(newNote, notes.children[1]);
-	return newNote;
+	const noteText = document.createElement("div");
+	noteText.innerText = note.text;
+	noteText.classList.add("note-text");
+
+	const wholeNote = document.createElement("div");
+	wholeNote.apiId = note.id;
+	wholeNote.classList.add("block-div");
+	wholeNote.appendChild(deleteButton);
+	wholeNote.appendChild(noteText);
+
+	notes.insertBefore(wholeNote, notes.children[1]);
+
+	return wholeNote;
 }
 
 async function renderNotes() {
