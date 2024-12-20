@@ -42,7 +42,7 @@ pub trait NoteDB {
     fn save(&mut self, n: &Note) -> NoteId;
     fn get(&self, id: &NoteId) -> Option<NoteEntry>;
     fn delete(&mut self, id: &NoteId);
-    fn iter(&self) -> Vec<NoteEntry>;
+    fn all(&self) -> Vec<NoteEntry>;
 }
 
 pub fn save(n: &Note) -> NoteId {
@@ -57,8 +57,8 @@ pub fn delete(id: &NoteId) {
     unsafe { DATABASE.delete(id) }
 }
 
-pub fn iter() -> Vec<NoteEntry> {
-    unsafe { DATABASE.iter() }
+pub fn all() -> Vec<NoteEntry> {
+    unsafe { DATABASE.all() }
 }
 
 #[cfg(test)]
@@ -87,7 +87,7 @@ pub mod tests {
         let l = populate_db(&mut db);
         let mut seen: Vec<NoteEntry> = Vec::new();
         let mut i = 0;
-        for entry in db.iter().iter() {
+        for entry in db.all().iter() {
             i += 1;
             for s in seen.iter() {
                 assert_ne!(entry, s);

@@ -39,7 +39,7 @@ impl NoteDB for NoDB {
         self.entries.retain(|entry| entry.id != *id);
     }
 
-    fn iter(&self) -> Vec<NoteEntry> {
+    fn all(&self) -> Vec<NoteEntry> {
         return self.entries.clone();
     }
 }

@@ -2,7 +2,7 @@ use crate::http::Http;
 use crate::info;
 use crate::note_db::{self, Note};
 use crate::TcpStream;
-use serde_json;
+use serde_json::{self, json};
 use std::io::Write;
 
 type Response = String;
@@ -10,6 +10,7 @@ enum APIError {
     NotImplemented,
     NotFound,
     BadRequest,
+    InternalError,
 }
 
 fn get_string(v: &serde_json::Value) -> Result<String, APIError> {
@@ -32,6 +33,30 @@ fn api_add_note(request: Http) -> Result<Response, APIError> {
 
     return Ok(id.to_string());
 }
+
+
+fn api_get_notes(request: Http) -> Result<Response, APIError> {
+    info!("Request to get notes");
+    let note_entries = note_db::all();
+    let mut resp = "[".to_string();
+    for entry in note_entries.into_iter() {
+        let note_json = json!({
+            "text": entry.note.text,
+        });
+        let note = match serde_json::to_string(&note_json) {
+            Ok(n) => n,
+            Err(e) => return Err(APIError::InternalError),
+        };
+        resp += &note;
+        resp += ",";
+    }
+    if resp.len() > 1 {
+        resp.pop();
+    }
+    resp += "]";
+    return Ok(resp);
+}
+
 fn hello_world() -> Result<Response, APIError> {
     return Ok("Hello world!".to_string());
 }
@@ -42,6 +67,7 @@ fn respond_error(mut stream: TcpStream, e: APIError) {
         NotFound => "HTTP/1.1 404 NOT FOUND\r\n",
         NotImplemented => "HTTP/1.1 501 NOT IMPLEMENTED\r\n",
         BadRequest => "HTTP/1.1 400 BAD REQUEST\r\n",
+        InternalError => "HTTP/1.1 500 INTERNAL SERVER ERROR\r\n",
     };
     stream.write_all(response.as_bytes()).unwrap();
 }
@@ -51,6 +77,7 @@ pub fn handle_api(mut stream: TcpStream, request: Http) {
 
     let resp_res = match path[2] {
         "add-note" => api_add_note(request),
+        "get-notes" => api_get_notes(request),
         "hello" => hello_world(),
         _ => Err(APIError::NotFound),
     };
@@ -63,6 +90,7 @@ pub fn handle_api(mut stream: TcpStream, request: Http) {
         }
     };
 
+    info!("{}", response);
     stream.write(b"HTTP/1.1 200 OK\r\n\r\n").unwrap();
     stream.write_all(response.as_bytes()).unwrap();
 }
