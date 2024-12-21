@@ -18,13 +18,12 @@ async function onSubmitNotePress(data) {
 		headers: {},
 	});
 	const id = await response.json();
-	domNote.apiId = id;
+	domNote.apiNote.id = id;
 	
 }
 
-async function onDeleteNotePress(data) {
-	const note = data.srcElement.parentElement;
-	const nId = note.apiId;
+async function onDeleteNotePress(data, note) {
+	const nId = note.apiNote.id;
 	console.log(nId);
 	const response = await fetch("/api/delete-note", {
 		method: "POST",
@@ -51,25 +50,42 @@ async function getNotesFromDb() {
 	return await response.json();
 }
 
-function addNoteToDom(note) {
+function noteHeader(root) {
 	const deleteButton = document.createElement("input");
 	deleteButton.type = "button";
 	deleteButton.classList.add("delete-button");
-	deleteButton.addEventListener("click", onDeleteNotePress);
+	deleteButton.addEventListener("click", (data) => {
+		onDeleteNotePress(data, root)
+	});
+
+	const time = document.createElement("div");
+	time.innerText = "12:57:18";
+
+	const header = document.createElement("div");
+	header.appendChild(time);
+	header.appendChild(deleteButton);
+	header.classList.add("note-header");
+
+	return header;
+}
+
+function addNoteToDom(note) {
+	const root = document.createElement("div");
+	root.apiNote = note;
 
 	const noteText = document.createElement("div");
 	noteText.innerText = note.text;
 	noteText.classList.add("note-text");
 
-	const wholeNote = document.createElement("div");
-	wholeNote.apiId = note.id;
-	wholeNote.classList.add("block-div");
-	wholeNote.appendChild(deleteButton);
-	wholeNote.appendChild(noteText);
+	const header = noteHeader(root);
 
-	notes.insertBefore(wholeNote, notes.children[1]);
+	root.classList.add("block-div");
+	root.appendChild(header);
+	root.appendChild(noteText);
 
-	return wholeNote;
+	notes.insertBefore(root, notes.children[1]);
+
+	return root;
 }
 
 async function renderNotes() {
