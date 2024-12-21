@@ -42,7 +42,24 @@ fn api_add_note(request: Http) -> Result<Response, APIError> {
 
     info!("Stored note {} with text:\n{}", id, text);
 
-    return Ok(id.to_string());
+    let entry = match note_db::get(&id) {
+        Some(e) => e,
+        None => return Err(APIError::InternalError),
+    };
+
+    return Ok(stringify_note(entry)?);
+}
+
+fn stringify_note(entry: note_db::NoteEntry) -> Result<String, APIError> {
+    let note_json = json!({
+        "text": entry.note.text,
+        "id": entry.id,
+        "date": entry.note.date,
+    });
+    match serde_json::to_string(&note_json) {
+        Ok(n) => Ok(n),
+        Err(_) => return Err(APIError::InternalError),
+    }
 }
 
 fn api_get_notes(request: Http) -> Result<Response, APIError> {
@@ -53,15 +70,7 @@ fn api_get_notes(request: Http) -> Result<Response, APIError> {
     let note_entries = note_db::all();
     let mut resp = "[".to_string();
     for entry in note_entries.into_iter() {
-        let note_json = json!({
-            "text": entry.note.text,
-            "id": entry.id,
-            "date": entry.note.date,
-        });
-        let note = match serde_json::to_string(&note_json) {
-            Ok(n) => n,
-            Err(_) => return Err(APIError::InternalError),
-        };
+        let note = stringify_note(entry)?;
         resp += &note;
         resp += ",";
     }
