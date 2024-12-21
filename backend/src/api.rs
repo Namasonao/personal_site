@@ -1,4 +1,4 @@
-use crate::http::Http;
+use crate::http::{Http, Method};
 use crate::info;
 use crate::note_db::{self, Note, NoteId};
 use crate::TcpStream;
@@ -35,7 +35,7 @@ fn api_add_note(request: Http) -> Result<Response, APIError> {
     info!("Request to add note");
     let body: serde_json::Value = match serde_json::from_slice(&request.body) {
         Ok(c) => c,
-        Err(e) => return Err(APIError::BadRequest),
+        Err(_) => return Err(APIError::BadRequest),
     };
     let text: String = get_string(&body["note"])?;
     let id = note_db::save(&Note::new(text.clone()));
@@ -45,8 +45,10 @@ fn api_add_note(request: Http) -> Result<Response, APIError> {
     return Ok(id.to_string());
 }
 
-
 fn api_get_notes(request: Http) -> Result<Response, APIError> {
+    if request.header.method != Method::Get {
+        return Err(APIError::BadRequest);
+    }
     info!("Request to get notes");
     let note_entries = note_db::all();
     let mut resp = "[".to_string();
@@ -58,7 +60,7 @@ fn api_get_notes(request: Http) -> Result<Response, APIError> {
         });
         let note = match serde_json::to_string(&note_json) {
             Ok(n) => n,
-            Err(e) => return Err(APIError::InternalError),
+            Err(_) => return Err(APIError::InternalError),
         };
         resp += &note;
         resp += ",";
@@ -75,7 +77,7 @@ fn api_delete_note(request: Http) -> Result<Response, APIError> {
 
     let body: serde_json::Value = match serde_json::from_slice(&request.body) {
         Ok(c) => c,
-        Err(e) => return Err(APIError::BadRequest),
+        Err(_) => return Err(APIError::BadRequest),
     };
 
     let id = get_id(&body["id"])?;
@@ -108,6 +110,7 @@ pub fn handle_api(mut stream: TcpStream, request: Http) {
         "get-notes" => api_get_notes(request),
         "delete-note" => api_delete_note(request),
         "hello" => hello_world(),
+        "not-implemented" => Err(APIError::NotImplemented),
         _ => Err(APIError::NotFound),
     };
 
