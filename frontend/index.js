@@ -18,10 +18,10 @@ async function onSubmitNotePress(data) {
 		headers: {},
 	});
 	const apiNote = await response.json();
-  domNote.remove();
-  addNoteToDom(apiNote);
-  console.log('Received response, updating note');
-  console.log(apiNote);
+	domNote.remove();
+	addNoteToDom(apiNote);
+	console.log('Received response, updating note');
+	console.log(apiNote);
 }
 
 async function onDeleteNotePress(data, root) {
@@ -53,13 +53,13 @@ async function getNotesFromDb() {
 }
 
 function noteHeader(root) {
-  console.log(root.apiNote);
-  if (root.apiNote.id === undefined) {
-    const header = document.createElement("div");
-    header.innerText = "Submitting...";
-    header.classList.add("note-header");
-    return header;
-  }
+	console.log(root.apiNote);
+	if (root.apiNote.id === undefined) {
+	const header = document.createElement("div");
+	header.innerText = "Submitting...";
+	header.classList.add("note-header");
+	return header;
+}
 	const deleteButton = document.createElement("input");
 	deleteButton.type = "button";
 	deleteButton.classList.add("delete-button");
@@ -69,13 +69,13 @@ function noteHeader(root) {
 
 	const dateDiv = document.createElement("div");
 	const timeDiv = document.createElement("div");
-  const fullDate = new Date(root.apiNote.date);
-  const date = fullDate.toLocaleDateString("en-UK");
-  const hh = fullDate.getHours();
-  const mm = fullDate.getMinutes();
-  const ss = fullDate.getSeconds();
+	const fullDate = new Date(root.apiNote.date);
+	const date = fullDate.toLocaleDateString("en-UK");
+	const hh = fullDate.getHours();
+	const mm = fullDate.getMinutes();
+	const ss = fullDate.getSeconds();
 
-  time = hh + ":" + mm + ":" + ss;
+	time = hh + ":" + mm + ":" + ss;
 	dateDiv.innerText = date + "\t" + time;
 
 	const header = document.createElement("div");
