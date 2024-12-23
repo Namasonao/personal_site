@@ -6,6 +6,7 @@ use sqlite::{
     Statement,
 };
 use std::path::Path;
+use base64::{Engine, prelude::BASE64_STANDARD};
 
 pub enum DBError {
     Fail,
@@ -41,7 +42,7 @@ fn statement_to_entry_err(statement: &Statement<'_>) -> Result<NoteEntry, sqlite
     let id: i64 = statement.read::<i64, _>("id")?;
     let _author: i64 = statement.read::<i64, _>("author")?;
     let time: i64 = statement.read::<i64, _>("time")?;
-    let contents = statement.read::<String, _>("contents")?;
+    let contents = from_sql_string(&statement.read::<String, _>("contents")?);
     let entry = NoteEntry {
         id: id,
         note: Note {
@@ -53,8 +54,11 @@ fn statement_to_entry_err(statement: &Statement<'_>) -> Result<NoteEntry, sqlite
 }
 
 fn into_sql_string(string: &str) -> String {
-    // TODO: Protection against SQL injection
-    return "'".to_string() + string + "'";
+    return "'".to_string() + &BASE64_STANDARD.encode(string) + "'";
+}
+
+fn from_sql_string(string: &str) -> String {
+    return String::from_utf8(BASE64_STANDARD.decode(string).unwrap()).unwrap();
 }
 
 impl NoteDB for SqliteDB {
