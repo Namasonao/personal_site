@@ -2,8 +2,8 @@ mod api;
 mod config;
 mod http;
 mod my_logger;
-mod nodb;
 mod note_db;
+mod sqlite_db;
 use crate::api::handle_api;
 use crate::config::*;
 use crate::http::*;
@@ -74,9 +74,10 @@ fn main() {
     let config_fp = args[1].clone();
     let cfg = match parse_config_file(&config_fp) {
         Ok(c) => c,
-        Err(e) => panic!("{}", e),
+        Err(e) => panic!("Config error: {}", e),
     };
     my_logger::init();
+    note_db::init(&cfg.database);
     println!("{:#?}", cfg);
     let listener = match TcpListener::bind(&cfg.address) {
         Ok(l) => l,

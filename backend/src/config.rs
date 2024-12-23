@@ -17,6 +17,7 @@ impl fmt::Display for ParseError {
 pub struct Config {
     pub address: String,
     pub frontend_dir: String,
+    pub database: String,
 }
 
 fn get_string(v: &serde_json::Value) -> Result<String, ParseError> {
@@ -45,5 +46,6 @@ pub fn parse_config_file(fp: &String) -> Result<Config, ParseError> {
     return Ok(Config {
         address: get_string(&cfg["address"])?,
         frontend_dir: get_string(&cfg["frontend_dir"])?,
+        database: get_string(&cfg["database"])?,
     });
 }

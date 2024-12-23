@@ -1,14 +1,16 @@
-use crate::nodb::NoDB;
+//use crate::nodb::NoDB;
+use crate::sqlite_db::SqliteDB;
 use std::time::{SystemTime, UNIX_EPOCH};
+use crate::my_logger::warn;
 
-pub type NoteId = u64;
+pub type NoteId = i64;
 
-static mut DATABASE: NoDB = NoDB::new();
+static mut DATABASE: SqliteDB = SqliteDB::new();
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Note {
     pub text: String,
-    pub date: u64,
+    pub date: i64,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -24,7 +26,7 @@ impl Note {
             date: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .expect("Time went backwards")
-                .as_millis() as u64,
+                .as_millis() as i64,
         }
     }
     pub fn new(s: String) -> Note {
@@ -33,7 +35,7 @@ impl Note {
             date: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .expect("Time went backwards")
-                .as_millis() as u64,
+                .as_millis() as i64,
         }
     }
 }
@@ -59,6 +61,12 @@ pub fn delete(id: &NoteId) {
 
 pub fn all() -> Vec<NoteEntry> {
     unsafe { DATABASE.all() }
+}
+
+pub fn init(path: &str) {
+    if let Err(_) = unsafe { DATABASE.init(path) } {
+        warn!("Could not initialise database {}", path);
+    }
 }
 
 #[cfg(test)]

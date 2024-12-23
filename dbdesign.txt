@@ -1,3 +1,8 @@
 table __notes:
 
-__id(INTEGER)   |  time(INTEGER)   |  contents(TEXT)
+__id(INTEGER)   |  author(INTEGER)  |  time(INTEGER)   |  contents(TEXT)
+
+
+table __authors:
+
+__id(INTEGER)   |  name(TEXT)       |  userSince(TIME) | 

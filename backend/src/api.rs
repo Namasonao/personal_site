@@ -25,7 +25,7 @@ fn get_id(v: &serde_json::Value) -> Result<NoteId, APIError> {
         serde_json::Value::Number(s) => s,
         _ => return Err(APIError::BadRequest),
     };
-    match n.as_u64() {
+    match n.as_i64() {
         Some(s) => Ok(s),
         _ => Err(APIError::BadRequest),
     }

@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 log = "0.4.22"
 serde_json = "1.0.133"
+sqlite = "0.36.1"
