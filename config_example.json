@@ -1,4 +1,5 @@
 {
 	"address": "127.0.0.1:7878",
-	"frontend_dir": "frontend"
+	"frontend_dir": "frontend",
+	"database": "database/test.db"
 }
