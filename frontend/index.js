@@ -97,6 +97,7 @@ function addNoteToDom(note) {
 	const header = noteHeader(root);
 
 	root.classList.add("block-div");
+	root.classList.add("whole-note");
 	root.appendChild(header);
 	root.appendChild(noteText);
 

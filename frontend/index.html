@@ -15,11 +15,10 @@
 
 	}
 	.block-div {
-		width: 600px;
+		width: 50em;
 		margin: 1em auto;
 		padding: 1.5em;
 		background-color: #fdfdff;
-		border-radius: 0.5em;
 		box-shadow: 2px 3px 7px 2px rgba(0,0,0,0.12);
 	}
 	a:link, a:visited {
@@ -32,11 +31,10 @@
 			width: auto;
 		}
 	}
-	#note-structure > div {
-		width: 500px;
-		padding: 0.5em;
-	}
 	.whole-note {
+		width: 90%;
+		margin: 1em auto;
+		padding: 0.5em;
 	}
 	.note-header {
 		display: flex;
@@ -63,7 +61,7 @@
 <div class="block-div">
 	<form id="note-add">
 		<label for="add-note">Text (TODO: make this stuff look nice):</label><br>
-		<input type="text" id="add-note-input" name="text" placeholder="Write down your notes here..." size=80><br>
+		<textarea class="whole-note" id="add-note-input" name="text" placeholder="Write down your notes here..."></textarea><br>
 		<input type="button" id="add-note-submit" name="button" value="Submit"><br>
 	</form>
 </div>
