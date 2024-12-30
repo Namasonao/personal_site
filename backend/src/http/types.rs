@@ -39,6 +39,4 @@ impl HttpResponse {
             body: body,
         }
     }
-
 }
-

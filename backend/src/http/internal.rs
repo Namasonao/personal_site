@@ -1,7 +1,7 @@
 use crate::http::types::*;
-use std::net::TcpStream;
-use std::io::{Error, Write, BufReader, Read, BufRead};
 use crate::{info, warn};
+use std::io::{BufRead, BufReader, Error, Read, Write};
+use std::net::TcpStream;
 
 impl HttpResponse {
     pub fn respond(&self, stream: &mut TcpStream) -> Result<(), Error> {

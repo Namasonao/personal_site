@@ -1,8 +1,8 @@
-use crate::{info, warn, config::Config};
-use std::io::{BufReader, Error};
-use std::net::{TcpListener};
-use crate::http::types::{HttpResponse, HttpRequest};
 use crate::http::internal::*;
+use crate::http::types::{HttpRequest, HttpResponse};
+use crate::{config::Config, info, warn};
+use std::io::{BufReader, Error};
+use std::net::TcpListener;
 
 type HttpHandlerT<'a> = Box<dyn HttpHandler + 'a>;
 pub trait HttpHandler {
@@ -16,7 +16,10 @@ pub struct HttpServer<'a> {
 }
 
 impl<'a> HttpServer<'a> {
-    pub fn new(config: &'a Config, default_handler: HttpHandlerT<'a>) -> Result<HttpServer<'a>, Error> {
+    pub fn new(
+        config: &'a Config,
+        default_handler: HttpHandlerT<'a>,
+    ) -> Result<HttpServer<'a>, Error> {
         let listener = match TcpListener::bind(&config.address) {
             Ok(l) => l,
             Err(e) => return Err(e),
@@ -60,4 +63,3 @@ impl<'a> HttpServer<'a> {
         }
     }
 }
-

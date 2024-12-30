@@ -6,9 +6,9 @@ mod note_db;
 mod sqlite_db;
 //use crate::api::handle_api;
 use crate::config::*;
-use crate::my_logger::*;
 use crate::http::server::*;
 use crate::http::types::*;
+use crate::my_logger::*;
 use std::env;
 use std::fs;
 
@@ -31,7 +31,9 @@ impl<'a> HttpHandler for MyHandler<'a> {
 
         let path_bytes = request.path.as_bytes();
         if path_bytes[path_bytes.len() - 1] == b'/' {
-            return http_respond_file(&(self.config.frontend_dir.clone() + &request.path + "index.html"));
+            return http_respond_file(
+                &(self.config.frontend_dir.clone() + &request.path + "index.html"),
+            );
         } else {
             return http_respond_file(&(self.config.frontend_dir.clone() + &request.path));
         }
@@ -68,9 +70,7 @@ fn main() {
     note_db::init(&cfg.database);
     println!("{:#?}", cfg);
 
-    let http_handler = MyHandler {
-        config: &cfg,
-    };
+    let http_handler = MyHandler { config: &cfg };
     let http_server = match HttpServer::new(&cfg, Box::new(http_handler)) {
         Ok(s) => s,
         Err(e) => panic!("{}", e),

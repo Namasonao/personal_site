@@ -1,7 +1,7 @@
 //use crate::nodb::NoDB;
+use crate::my_logger::warn;
 use crate::sqlite_db::SqliteDB;
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::my_logger::warn;
 
 pub type NoteId = i64;
 

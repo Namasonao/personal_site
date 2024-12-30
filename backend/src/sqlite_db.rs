@@ -1,12 +1,7 @@
-use crate::note_db::{NoteId, NoteEntry, Note, NoteDB};
-use sqlite::{
-    open,
-    Connection,
-    State,
-    Statement,
-};
+use crate::note_db::{Note, NoteDB, NoteEntry, NoteId};
+use base64::{prelude::BASE64_STANDARD, Engine};
+use sqlite::{open, Connection, State, Statement};
 use std::path::Path;
-use base64::{Engine, prelude::BASE64_STANDARD};
 
 pub enum DBError {
     Fail,
@@ -17,9 +12,7 @@ pub struct SqliteDB {
 
 impl SqliteDB {
     pub const fn new() -> SqliteDB {
-        SqliteDB {
-            connection: None,
-        }
+        SqliteDB { connection: None }
     }
     pub fn init(&mut self, path: &str) -> Result<(), DBError> {
         self.connection = match open(Path::new(path)) {
@@ -71,11 +64,14 @@ impl NoteDB for SqliteDB {
         let author = 0;
         let time = &n.date;
         let contents = into_sql_string(&n.text);
-        let query = format!("
+        let query = format!(
+            "
         INSERT INTO notes (author, time, contents) 
         VALUES ({}, {}, {})
         RETURNING id
-        ", author, time, contents);
+        ",
+            author, time, contents
+        );
 
         println!("{}", query);
         let mut statement = connection.prepare(query).unwrap();
@@ -92,9 +88,12 @@ impl NoteDB for SqliteDB {
             None => return None,
         };
 
-        let query = format!("
+        let query = format!(
+            "
         SELECT * FROM notes WHERE id IS {}
-        ", id);
+        ",
+            id
+        );
         let mut statement = connection.prepare(query).unwrap();
         if let Ok(State::Row) = statement.next() {
             statement_to_entry(&statement)
@@ -108,9 +107,12 @@ impl NoteDB for SqliteDB {
             Some(c) => c,
             None => return,
         };
-        let query = format!("
+        let query = format!(
+            "
         DELETE FROM notes WHERE id IS {}
-        ", id);
+        ",
+            id
+        );
 
         connection.execute(query).unwrap();
     }
