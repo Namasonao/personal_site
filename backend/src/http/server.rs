@@ -52,14 +52,12 @@ impl<'a> HttpServer<'a> {
                     continue;
                 }
             };
-            info!("Parsed HTTP successfully");
 
             let http_response = self.default_handler.handle(http_request);
             if let Err(e) = http_response.respond(&mut stream) {
                 warn!("Error responding: {}", e);
                 continue;
             }
-            info!("Responded HTTP");
         }
     }
 }

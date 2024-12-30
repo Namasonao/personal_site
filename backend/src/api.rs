@@ -1,76 +1,93 @@
-use crate::http::{Http, Method};
-use crate::info;
+use crate::http::server::HttpHandler;
+use crate::http::types::{HttpRequest, HttpResponse, Method, StatusCode};
 use crate::note_db::{self, Note, NoteId};
-use crate::TcpStream;
+use crate::{info, warn};
 use serde_json::{self, json};
-use std::io::Write;
 
-type Response = String;
-enum APIError {
-    NotImplemented,
-    NotFound,
-    BadRequest,
-    InternalError,
-}
-
-fn get_string(v: &serde_json::Value) -> Result<String, APIError> {
-    match v {
-        serde_json::Value::String(s) => Ok(s.clone()),
-        _ => Err(APIError::BadRequest),
+pub struct ApiHandler {}
+impl HttpHandler for ApiHandler {
+    fn handle(&self, req: HttpRequest) -> HttpResponse {
+        return handle_api(req);
     }
 }
 
-fn get_id(v: &serde_json::Value) -> Result<NoteId, APIError> {
+fn bad_request() -> HttpResponse {
+    HttpResponse::new(StatusCode::BadRequest, None)
+}
+
+fn get_string(v: &serde_json::Value) -> Option<String> {
+    match v {
+        serde_json::Value::String(s) => Some(s.clone()),
+        _ => None,
+    }
+}
+
+fn get_id(v: &serde_json::Value) -> Option<NoteId> {
     let n = match v {
         serde_json::Value::Number(s) => s,
-        _ => return Err(APIError::BadRequest),
+        _ => return None,
     };
-    match n.as_i64() {
-        Some(s) => Ok(s),
-        _ => Err(APIError::BadRequest),
-    }
+    return n.as_i64();
 }
 
-fn api_add_note(request: Http) -> Result<Response, APIError> {
+fn api_add_note(request: HttpRequest) -> HttpResponse {
     info!("Request to add note");
-    let body: serde_json::Value = match serde_json::from_slice(&request.body) {
-        Ok(c) => c,
-        Err(_) => return Err(APIError::BadRequest),
+    let body_bytes = match request.body {
+        Some(b) => b,
+        None => return bad_request(),
     };
-    let text: String = get_string(&body["note"])?;
+
+    let body: serde_json::Value = match serde_json::from_slice(&body_bytes) {
+        Ok(c) => c,
+        Err(_) => return bad_request(),
+    };
+    let text = match get_string(&body["note"]) {
+        Some(t) => t,
+        None => return bad_request(),
+    };
     let id = note_db::save(&Note::new(text.clone()));
 
     info!("Stored note {} with text:\n{}", id, text);
 
     let entry = match note_db::get(&id) {
         Some(e) => e,
-        None => return Err(APIError::InternalError),
+        None => return HttpResponse::new(StatusCode::InternalError, None),
     };
 
-    return Ok(stringify_note(entry)?);
+    let note = match stringify_note(entry) {
+        Some(s) => s,
+        None => return HttpResponse::new(StatusCode::InternalError, None),
+    };
+    HttpResponse::new(StatusCode::OK, Some(note.into_bytes()))
 }
 
-fn stringify_note(entry: note_db::NoteEntry) -> Result<String, APIError> {
+fn stringify_note(entry: note_db::NoteEntry) -> Option<String> {
     let note_json = json!({
         "text": entry.note.text,
         "id": entry.id,
         "date": entry.note.date,
     });
     match serde_json::to_string(&note_json) {
-        Ok(n) => Ok(n),
-        Err(_) => return Err(APIError::InternalError),
+        Ok(n) => Some(n),
+        Err(e) => {
+            warn!("{}", e);
+            None
+        }
     }
 }
 
-fn api_get_notes(request: Http) -> Result<Response, APIError> {
-    if request.header.method != Method::Get {
-        return Err(APIError::BadRequest);
+fn api_get_notes(request: HttpRequest) -> HttpResponse {
+    if request.method != Method::Get {
+        return bad_request();
     }
     info!("Request to get notes");
     let note_entries = note_db::all();
     let mut resp = "[".to_string();
     for entry in note_entries.into_iter() {
-        let note = stringify_note(entry)?;
+        let note = match stringify_note(entry) {
+            Some(s) => s,
+            None => return HttpResponse::new(StatusCode::InternalError, None),
+        };
         resp += &note;
         resp += ",";
     }
@@ -78,60 +95,44 @@ fn api_get_notes(request: Http) -> Result<Response, APIError> {
         resp.pop();
     }
     resp += "]";
-    return Ok(resp);
+
+    HttpResponse::new(StatusCode::OK, Some(resp.into_bytes()))
 }
 
-fn api_delete_note(request: Http) -> Result<Response, APIError> {
+fn api_delete_note(request: HttpRequest) -> HttpResponse {
     info!("Request to delete notes");
-
-    let body: serde_json::Value = match serde_json::from_slice(&request.body) {
-        Ok(c) => c,
-        Err(_) => return Err(APIError::BadRequest),
+    let body_bytes = match request.body {
+        Some(b) => b,
+        None => return bad_request(),
     };
 
-    let id = get_id(&body["id"])?;
+    let body: serde_json::Value = match serde_json::from_slice(&body_bytes) {
+        Ok(c) => c,
+        Err(_) => return bad_request(),
+    };
+
+    let id = match get_id(&body["id"]) {
+        Some(s) => s,
+        None => return bad_request(),
+    };
     note_db::delete(&id);
 
-    let resp = "".to_string();
-    return Ok(resp);
+    HttpResponse::new(StatusCode::OK, None)
 }
 
-fn hello_world() -> Result<Response, APIError> {
-    return Ok("Hello world!".to_string());
+fn hello_world() -> HttpResponse {
+    HttpResponse::new(StatusCode::OK, Some("hello world!".as_bytes().to_vec()))
 }
 
-fn respond_error(mut stream: TcpStream, e: APIError) {
-    use APIError::*;
-    let response = match e {
-        NotFound => "HTTP/1.1 404 NOT FOUND\r\n",
-        NotImplemented => "HTTP/1.1 501 NOT IMPLEMENTED\r\n",
-        BadRequest => "HTTP/1.1 400 BAD REQUEST\r\n",
-        InternalError => "HTTP/1.1 500 INTERNAL SERVER ERROR\r\n",
-    };
-    stream.write_all(response.as_bytes()).unwrap();
-}
+fn handle_api(request: HttpRequest) -> HttpResponse {
+    let path: Vec<&str> = request.path.split('/').collect();
 
-pub fn handle_api(mut stream: TcpStream, request: Http) {
-    let path: Vec<&str> = request.header.path.split('/').collect();
-
-    let resp_res = match path[2] {
+    return match path[2] {
         "add-note" => api_add_note(request),
         "get-notes" => api_get_notes(request),
         "delete-note" => api_delete_note(request),
         "hello" => hello_world(),
-        "not-implemented" => Err(APIError::NotImplemented),
-        _ => Err(APIError::NotFound),
+        "not-implemented" => HttpResponse::new(StatusCode::NotImplemented, None),
+        _ => HttpResponse::new(StatusCode::NotFound, None),
     };
-
-    let response = match resp_res {
-        Ok(s) => s,
-        Err(e) => {
-            respond_error(stream, e);
-            return;
-        }
-    };
-
-    info!("{}", response);
-    stream.write(b"HTTP/1.1 200 OK\r\n\r\n").unwrap();
-    stream.write_all(response.as_bytes()).unwrap();
 }

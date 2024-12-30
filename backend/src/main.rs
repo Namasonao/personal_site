@@ -1,10 +1,10 @@
-//mod api;
+mod api;
 mod config;
 mod http;
 mod my_logger;
 mod note_db;
 mod sqlite_db;
-//use crate::api::handle_api;
+use crate::api::ApiHandler;
 use crate::config::*;
 use crate::http::server::*;
 use crate::http::types::*;
@@ -18,11 +18,10 @@ struct MyHandler<'a> {
 
 impl<'a> HttpHandler for MyHandler<'a> {
     fn handle(&self, request: HttpRequest) -> HttpResponse {
-        /*
         if request.path.starts_with("/api") {
-            return handle_api(request, request);
+            let handler = ApiHandler {};
+            return handler.handle(request);
         }
-        */
 
         match request.method {
             Method::Get => {}
