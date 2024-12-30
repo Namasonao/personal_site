@@ -6,8 +6,9 @@ mod note_db;
 mod sqlite_db;
 //use crate::api::handle_api;
 use crate::config::*;
-use crate::http::*;
 use crate::my_logger::*;
+use crate::http::server::*;
+use crate::http::types::*;
 use std::env;
 use std::fs;
 

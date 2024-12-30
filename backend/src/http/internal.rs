@@ -1,66 +1,14 @@
-use crate::{info, warn, config::Config};
-use std::io::{BufRead, BufReader, Error, Read, Write};
-use std::net::{TcpStream, TcpListener};
-use std::str;
-
-type HttpHandlerT<'a> = Box<dyn HttpHandler + 'a>;
-pub trait HttpHandler {
-    fn handle(&self, request: HttpRequest) -> HttpResponse;
-}
-
-pub struct HttpServer<'a> {
-    listener: TcpListener,
-    default_handler: HttpHandlerT<'a>,
-    config: &'a Config,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Method {
-    Get,
-    Post,
-}
-
-type Field = (String, String);
-
-#[derive(Debug)]
-pub struct HttpRequest {
-    pub method: Method,
-    pub path: String,
-    pub version: String,
-    pub fields: Vec<Field>,
-    pub body: Option<Vec<u8>>,
-}
-
-pub enum StatusCode {
-    OK,
-    BadRequest,
-    NotFound,
-    InternalError,
-    NotImplemented,
-}
-
-pub struct HttpResponse {
-    pub version: String,
-    pub status_code: StatusCode,
-    pub fields: Vec<Field>,
-    pub body: Option<Vec<u8>>,
-}
+use crate::http::types::*;
+use std::net::TcpStream;
+use std::io::{Error, Write, BufReader, Read, BufRead};
+use crate::{info, warn};
 
 impl HttpResponse {
-    pub fn new(code: StatusCode, body: Option<Vec<u8>>) -> HttpResponse {
-        HttpResponse {
-            version: "HTTP/1.1".to_string(),
-            status_code: code,
-            fields: Vec::new(),
-            body: body,
-        }
-    }
-
-    fn respond(&self, stream: &mut TcpStream) -> Result<(), Error> {
+    pub fn respond(&self, stream: &mut TcpStream) -> Result<(), Error> {
         let mut response = self.version.clone();
         response += " ";
         use StatusCode::*;
-        response += match self.status_code {
+        response += match &self.status_code {
             OK => "200 OK",
             NotFound => "404 NOT FOUND",
             NotImplemented => "501 NOT IMPLEMENTED",
@@ -84,52 +32,6 @@ impl HttpResponse {
         }
 
         Ok(())
-    }
-}
-
-impl<'a> HttpServer<'a> {
-    pub fn new(config: &'a Config, default_handler: HttpHandlerT<'a>) -> Result<HttpServer<'a>, Error> {
-        let listener = match TcpListener::bind(&config.address) {
-            Ok(l) => l,
-            Err(e) => return Err(e),
-        };
-        Ok(HttpServer {
-            listener: listener,
-            default_handler: default_handler,
-            config: config,
-        })
-    }
-
-    pub fn listen(&self) {
-        for stream in self.listener.incoming() {
-            let mut stream = match stream {
-                Ok(s) => s,
-                Err(e) => {
-                    warn!("Invalid stream: {}", e);
-                    continue;
-                }
-            };
-            info!(
-                "Connection established with {}",
-                stream.peer_addr().unwrap()
-            );
-            let buf_reader = BufReader::new(&mut stream);
-            let http_request = match parse_http(buf_reader) {
-                Ok(r) => r,
-                Err(e) => {
-                    warn!("Invalid HTTP: {}", e);
-                    continue;
-                }
-            };
-            info!("Parsed HTTP successfully");
-
-            let http_response = self.default_handler.handle(http_request);
-            if let Err(e) = http_response.respond(&mut stream) {
-                warn!("Error responding: {}", e);
-                continue;
-            }
-            info!("Responded HTTP");
-        }
     }
 }
 
@@ -205,5 +107,3 @@ pub fn parse_http(mut buf_reader: BufReader<&mut TcpStream>) -> Result<HttpReque
         body: Some(http_body),
     });
 }
-
-
