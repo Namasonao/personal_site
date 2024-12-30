@@ -1,67 +1,54 @@
-mod api;
+//mod api;
 mod config;
 mod http;
 mod my_logger;
 mod note_db;
 mod sqlite_db;
-use crate::api::handle_api;
+//use crate::api::handle_api;
 use crate::config::*;
 use crate::http::*;
 use crate::my_logger::*;
 use std::env;
 use std::fs;
-use std::io::{prelude::*, BufReader};
-use std::net::{TcpListener, TcpStream};
 
-fn handle_connection(mut stream: TcpStream, frontend_dir: String) {
-    let buf_reader = BufReader::new(&mut stream);
-    let http = match parse_http(buf_reader) {
-        Ok(h) => h,
-        Err(e) => {
-            warn!("HTTP error: {}", e);
-            http_respond_error(stream);
-            return;
+struct MyHandler<'a> {
+    config: &'a Config,
+}
+
+impl<'a> HttpHandler for MyHandler<'a> {
+    fn handle(&self, request: HttpRequest) -> HttpResponse {
+        /*
+        if request.path.starts_with("/api") {
+            return handle_api(request, request);
         }
-    };
+        */
 
-    if http.header.path.starts_with("/api") {
-        handle_api(stream, http);
-        return;
-    }
+        match request.method {
+            Method::Get => {}
+            Method::Post => {}
+        }
 
-    let header = http.header;
-    match header.method {
-        Method::Get => {}
-        Method::Post => {}
-    }
-
-    let path_bytes = header.path.as_bytes();
-    if path_bytes[path_bytes.len() - 1] == b'/' {
-        http_respond_file(stream, frontend_dir + &header.path + "index.html");
-    } else {
-        http_respond_file(stream, frontend_dir + &header.path);
+        let path_bytes = request.path.as_bytes();
+        if path_bytes[path_bytes.len() - 1] == b'/' {
+            return http_respond_file(&(self.config.frontend_dir.clone() + &request.path + "index.html"));
+        } else {
+            return http_respond_file(&(self.config.frontend_dir.clone() + &request.path));
+        }
     }
 }
 
-fn http_respond_error(mut stream: TcpStream) {
-    let response = "HTTP/1.1 404 NOT FOUND\r\n";
-    stream.write_all(response.as_bytes()).unwrap();
-}
-
-fn http_respond_file(mut stream: TcpStream, fp: String) {
+fn http_respond_file(fp: &str) -> HttpResponse {
     // TODO: Check permissions
-    let result = fs::read(fp.clone());
+    let result = fs::read(fp);
     let contents = match result {
         Ok(c) => c,
         Err(e) => {
             warn!("fs::read({}) - {}", fp, e);
-            http_respond_error(stream);
-            return;
+            return HttpResponse::new(StatusCode::NotFound, None);
         }
     };
-    let response = "HTTP/1.1 200 OK\r\n\r\n";
-    stream.write_all(response.as_bytes()).unwrap();
-    stream.write_all(&contents).unwrap();
+
+    return HttpResponse::new(StatusCode::OK, Some(contents));
 }
 
 fn main() {
@@ -79,23 +66,14 @@ fn main() {
     my_logger::init();
     note_db::init(&cfg.database);
     println!("{:#?}", cfg);
-    let listener = match TcpListener::bind(&cfg.address) {
-        Ok(l) => l,
+
+    let http_handler = MyHandler {
+        config: &cfg,
+    };
+    let http_server = match HttpServer::new(&cfg, Box::new(http_handler)) {
+        Ok(s) => s,
         Err(e) => panic!("{}", e),
     };
 
-    for stream in listener.incoming() {
-        let stream = match stream {
-            Ok(s) => s,
-            Err(e) => {
-                warn!("{}", e);
-                continue;
-            }
-        };
-        info!(
-            "Connection established with {}!",
-            stream.peer_addr().unwrap()
-        );
-        handle_connection(stream, cfg.frontend_dir.clone());
-    }
+    http_server.listen();
 }
