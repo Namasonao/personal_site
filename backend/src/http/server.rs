@@ -32,6 +32,8 @@ impl<'a> HttpServer<'a> {
     }
 
     pub fn listen(&self) {
+        self.listen_async();
+        return;
         for stream in self.listener.incoming() {
             let mut stream = match stream {
                 Ok(s) => s,
@@ -57,6 +59,52 @@ impl<'a> HttpServer<'a> {
             if let Err(e) = http_response.respond(&mut stream) {
                 warn!("Error responding: {}", e);
                 continue;
+            }
+        }
+    }
+
+    pub fn listen_async(&self) {
+        if let Err(e) = self.listener.set_nonblocking(true) {
+            warn!("{}", e);
+            return;
+        }
+
+        let mut active_parsers: Vec<AsyncHttpParser> = Vec::new();
+        loop {
+            match self.listener.accept() {
+                Ok((stream, addr)) => {
+                    info!(
+                        "Connection established with {}",
+                        stream.peer_addr().unwrap()
+                    );
+                    if let Err(e) = stream.set_nonblocking(true) {
+                        warn!("Stream will block: {}", e);
+                    }
+                    let buf_reader = BufReader::new(stream);
+                    active_parsers.push(AsyncHttpParser::new(buf_reader));
+                    info!("{} active connections", active_parsers.len());
+                }
+                Err(e) => {}
+            }
+            for i in 0..active_parsers.len() {
+                let mut parser = &mut active_parsers[i];
+                match parser.parse() {
+                    Future::Done(http_request) => {
+                        let http_response = self.default_handler.handle(http_request);
+                        if let Err(e) = http_response.respond(parser.get_stream()) {
+                            warn!("Error responding: {}", e);
+                            continue;
+                        }
+                        active_parsers.remove(i);
+                        break;
+                    }
+                    Future::Fail(e) => {
+                        warn!("Invalid HTTP: {}", e);
+                        active_parsers.remove(i);
+                        break;
+                    }
+                    Future::Wait => {}
+                }
             }
         }
     }

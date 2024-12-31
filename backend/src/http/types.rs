@@ -1,12 +1,12 @@
 pub type Field = (String, String);
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Method {
     Get,
     Post,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HttpRequest {
     pub method: Method,
     pub path: String,
@@ -15,6 +15,7 @@ pub struct HttpRequest {
     pub body: Option<Vec<u8>>,
 }
 
+#[derive(Debug)]
 pub enum StatusCode {
     OK,
     BadRequest,
@@ -23,6 +24,7 @@ pub enum StatusCode {
     NotImplemented,
 }
 
+#[derive(Debug)]
 pub struct HttpResponse {
     pub version: String,
     pub status_code: StatusCode,
