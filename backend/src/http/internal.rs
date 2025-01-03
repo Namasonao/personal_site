@@ -2,6 +2,7 @@ use crate::http::types::*;
 use crate::{info, warn};
 use std::io::{BufRead, BufReader, Error, ErrorKind, Read, Write};
 use std::net::TcpStream;
+use std::os::fd::{AsFd, BorrowedFd};
 
 impl HttpResponse {
     pub fn respond(&self, stream: &mut TcpStream) -> Result<(), Error> {
@@ -158,6 +159,10 @@ fn parse_start(line: String) -> Result<HttpParserState, &'static str> {
 }
 
 impl AsyncHttpParser {
+    pub fn as_fd(&self) -> BorrowedFd {
+        return self.reader.get_ref().as_fd();
+    }
+
     pub fn get_stream(&mut self) -> &mut TcpStream {
         self.reader.get_mut()
     }
