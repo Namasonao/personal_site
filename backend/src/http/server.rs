@@ -36,40 +36,6 @@ impl<'a> HttpServer<'a> {
         })
     }
 
-    /*
-    pub fn listen(&self) {
-        self.listen_async();
-        return;
-        for stream in self.listener.incoming() {
-            let mut stream = match stream {
-                Ok(s) => s,
-                Err(e) => {
-                    warn!("Invalid stream: {}", e);
-                    continue;
-                }
-            };
-            info!(
-                "Connection established with {}",
-                stream.peer_addr().unwrap()
-            );
-            let buf_reader = BufReader::new(&mut stream);
-            let http_request = match parse_http(buf_reader) {
-                Ok(r) => r,
-                Err(e) => {
-                    warn!("Invalid HTTP: {}", e);
-                    continue;
-                }
-            };
-
-            let http_response = self.default_handler.handle(http_request);
-            if let Err(e) = http_response.respond(&mut stream) {
-                warn!("Error responding: {}", e);
-                continue;
-            }
-        }
-    }
-    */
-
     // listens async
     pub fn listen(&self) {
         if let Err(e) = self.listener.set_nonblocking(true) {
