@@ -6,6 +6,7 @@ use nix::sys::epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags};
 use std::io::{BufReader, Error};
 use std::net::TcpListener;
 use std::os::fd::AsFd;
+use std::time::Duration;
 
 const DATA: u64 = 17;
 
@@ -73,7 +74,9 @@ impl<'a> HttpServer<'a> {
                         continue;
                     }
                     let buf_reader = BufReader::new(stream);
-                    active_parsers.push(AsyncHttpParser::new(buf_reader));
+                    let mut parser = AsyncHttpParser::new(buf_reader);
+                    parser.set_timeout(Duration::from_secs(2));
+                    active_parsers.push(parser);
                     info!("{} active connections", active_parsers.len());
                 }
                 Err(_) => {}

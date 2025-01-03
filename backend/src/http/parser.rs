@@ -4,6 +4,7 @@ use std::io::{BufRead, BufReader, ErrorKind, Read};
 use std::mem;
 use std::net::TcpStream;
 use std::os::fd::{AsFd, BorrowedFd};
+use std::time::{Duration, SystemTime};
 
 enum HttpParserState {
     NotStarted,
@@ -19,9 +20,15 @@ pub enum Future<T> {
     Wait,
 }
 
+struct TimeoutInfo {
+    start: SystemTime,
+    duration: Duration,
+}
+
 pub struct AsyncHttpParser {
     state: HttpParserState,
     reader: BufReader<TcpStream>,
+    timeout_info: Option<TimeoutInfo>,
 }
 
 impl AsyncHttpParser {
@@ -37,6 +44,24 @@ impl AsyncHttpParser {
         AsyncHttpParser {
             state: HttpParserState::NotStarted,
             reader: reader,
+            timeout_info: None,
+        }
+    }
+    pub fn set_timeout(&mut self, duration: Duration) {
+        self.timeout_info = Some(TimeoutInfo {
+            start: SystemTime::now(),
+            duration: duration,
+        });
+    }
+
+    fn timeout(&self) -> bool {
+        let timeout_info = match &self.timeout_info {
+            Some(t) => t,
+            None => return false,
+        };
+        match timeout_info.start.elapsed() {
+            Ok(d) => d >= timeout_info.duration,
+            Err(_) => true,
         }
     }
 
@@ -133,6 +158,9 @@ impl AsyncHttpParser {
     }
 
     pub fn parse(&mut self) -> Future<HttpRequest> {
+        if self.timeout() {
+            return Future::Fail("TIMEOUT");
+        }
         use HttpParserState::*;
         loop {
             //let old_state = mem::replace(&mut self.state, Moved);
