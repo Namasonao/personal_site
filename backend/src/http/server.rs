@@ -1,11 +1,11 @@
 use crate::http::internal::*;
 use crate::http::types::{HttpRequest, HttpResponse};
 use crate::{config::Config, info, warn};
-use std::io::{BufReader, Error};
-use std::os::fd::AsFd;
-use std::net::TcpListener;
-use nix::sys::epoll::{Epoll, EpollCreateFlags, EpollFlags, EpollEvent};
 use nix::poll::PollTimeout;
+use nix::sys::epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags};
+use std::io::{BufReader, Error};
+use std::net::TcpListener;
+use std::os::fd::AsFd;
 
 const DATA: u64 = 17;
 
@@ -78,10 +78,13 @@ impl<'a> HttpServer<'a> {
             Err(e) => {
                 warn!("Could not make epoll object");
                 return;
-            },
+            }
         };
 
-        if let Err(e) = epoll.add(&self.listener.as_fd(), EpollEvent::new(EpollFlags::EPOLLIN,DATA)) {
+        if let Err(e) = epoll.add(
+            &self.listener.as_fd(),
+            EpollEvent::new(EpollFlags::EPOLLIN, DATA),
+        ) {
             warn!("Could not wait for TCP Listener");
             return;
         }
@@ -90,22 +93,21 @@ impl<'a> HttpServer<'a> {
         loop {
             match self.listener.accept() {
                 Ok((stream, addr)) => {
-                    info!(
-                        "Connection established with {}",
-                        addr
-                    );
+                    info!("Connection established with {}", addr);
                     if let Err(e) = stream.set_nonblocking(true) {
                         warn!("Stream will block: {}", e);
                     }
-                    if let Err(e) = epoll.add(&stream.as_fd(), EpollEvent::new(EpollFlags::EPOLLIN,DATA)) {
+                    if let Err(e) =
+                        epoll.add(&stream.as_fd(), EpollEvent::new(EpollFlags::EPOLLIN, DATA))
+                    {
                         warn!("failed to add TCP stream to Epoll: {}", e);
                         continue;
                     }
                     let buf_reader = BufReader::new(stream);
                     active_parsers.push(AsyncHttpParser::new(buf_reader));
                     info!("{} active connections", active_parsers.len());
-                },
-                Err(_) => {},
+                }
+                Err(_) => {}
             }
             for i in 0..active_parsers.len() {
                 let mut parser = &mut active_parsers[i];
