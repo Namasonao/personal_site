@@ -105,7 +105,6 @@ impl<'a> HttpServer<'a> {
             if let Err(e) = epoll.wait(&mut events, PollTimeout::NONE) {
                 warn!("failed to wait for events: {}", e);
             }
-            println!("events: {:#?}", events);
         }
     }
 }

@@ -1,15 +1,16 @@
 use crate::http::types::*;
 use crate::{info, warn};
 use std::io::{BufRead, BufReader, ErrorKind, Read};
+use std::mem;
 use std::net::TcpStream;
 use std::os::fd::{AsFd, BorrowedFd};
 
-#[derive(Clone)]
 enum HttpParserState {
     NotStarted,
     ParsingFields(HttpRequest),
     ParsingBody(HttpRequest, usize),
     Done(HttpRequest),
+    Moved,
 }
 
 pub enum Future<T> {
@@ -39,76 +40,128 @@ impl AsyncHttpParser {
         }
     }
 
+    fn parse_not_started(&mut self) -> Future<()> {
+        let HttpParserState::NotStarted = &self.state else {
+            return Future::Fail("Unexpected State");
+        };
+
+        let mut first_line = String::new();
+        if let Err(e) = self.reader.read_line(&mut first_line) {
+            if let ErrorKind::WouldBlock = e.kind() {
+                return Future::Wait;
+            }
+            warn!("Error reading line: {}", e.kind());
+            return Future::Fail("Empty request");
+        }
+        self.state = match parse_start(first_line) {
+            Ok(state) => state,
+            Err(e) => {
+                warn!("{}", e);
+                return Future::Fail(e);
+            }
+        };
+        Future::Done(())
+    }
+
+    fn parse_fields(&mut self) -> Future<()> {
+        let HttpParserState::ParsingFields(_) = &self.state else {
+            return Future::Fail("Unexpected state");
+        };
+        let mut line = String::new();
+        if let Err(e) = self.reader.read_line(&mut line) {
+            if let ErrorKind::WouldBlock = e.kind() {
+                return Future::Wait;
+            }
+            warn!("Error reading line: {}", e.kind());
+            return Future::Fail("Empty request");
+        }
+        // move state to avoid duplication
+        let HttpParserState::ParsingFields(mut request) =
+            mem::replace(&mut self.state, HttpParserState::Moved)
+        else {
+            warn!("If this is printed there is trouble");
+            return Future::Fail("Unexpected state");
+        };
+
+        // ignore \r\n
+        let _ = line.pop();
+        let _ = line.pop();
+        self.state = if line.is_empty() {
+            fields_end_state(request)
+        } else {
+            match parse_field(line) {
+                Some(f) => {
+                    request.fields.push(f);
+                    HttpParserState::ParsingFields(request)
+                }
+                None => HttpParserState::ParsingFields(request),
+            }
+        };
+        Future::Done(())
+    }
+
+    fn parse_body(&mut self) -> Future<()> {
+        let HttpParserState::ParsingBody(_, length) = &self.state else {
+            return Future::Fail("Unexpected state");
+        };
+        let mut http_body = Vec::new();
+        http_body.reserve(*length);
+        unsafe {
+            http_body.set_len(*length);
+        }
+        if let Err(e) = self.reader.read_exact(&mut http_body) {
+            if let ErrorKind::WouldBlock = e.kind() {
+                return Future::Wait;
+            }
+            warn!("{}", e);
+            return Future::Fail("Error reading body");
+        }
+        let HttpParserState::ParsingBody(mut request, length) =
+            mem::replace(&mut self.state, HttpParserState::Moved)
+        else {
+            return Future::Fail("Unexpected state");
+        };
+        info!(
+            "Read body with expected size of {} bytes\nand size of {}",
+            length,
+            http_body.len()
+        );
+        info!("Read the following: {:?}", http_body);
+        request.body = Some(http_body);
+        self.state = HttpParserState::Done(request);
+        Future::Done(())
+    }
+
     pub fn parse(&mut self) -> Future<HttpRequest> {
         use HttpParserState::*;
         loop {
-            self.state = match &self.state {
-                Done(r) => return Future::Done(r.clone()),
-                NotStarted => {
-                    let mut first_line = String::new();
-                    if let Err(e) = self.reader.read_line(&mut first_line) {
-                        if let ErrorKind::WouldBlock = e.kind() {
-                            return Future::Wait;
-                        }
-                        warn!("Error reading line: {}", e.kind());
-                        return Future::Fail("Empty request");
-                    }
-                    match parse_start(first_line) {
-                        Ok(state) => state,
-                        Err(e) => {
-                            warn!("{}", e);
-                            return Future::Fail(e);
-                        }
-                    }
+            //let old_state = mem::replace(&mut self.state, Moved);
+            let success = match &self.state {
+                Moved => {
+                    warn!("Can not parse moved state");
+                    return Future::Fail("??");
                 }
-                ParsingFields(request) => {
-                    let mut request = request.clone();
-                    let mut line = String::new();
-                    if let Err(e) = self.reader.read_line(&mut line) {
-                        if let ErrorKind::WouldBlock = e.kind() {
-                            return Future::Wait;
-                        }
-                        warn!("Error reading line: {}", e.kind());
-                        return Future::Fail("Empty request");
-                    }
-                    // ignore \r\n
-                    let _ = line.pop();
-                    let _ = line.pop();
-                    if line.is_empty() {
-                        fields_end_state(request)
-                    } else {
-                        match parse_field(line) {
-                            Some(f) => {
-                                request.fields.push(f);
-                                ParsingFields(request)
-                            }
-                            None => ParsingFields(request),
-                        }
-                    }
+                Done(_) => {
+                    let Done(r) = mem::replace(&mut self.state, Moved) else {
+                        return Future::Fail("");
+                    };
+                    return Future::Done(r);
                 }
-                ParsingBody(request, length) => {
-                    let mut request = request.clone();
-                    let mut http_body = Vec::new();
-                    http_body.reserve(*length);
-                    unsafe {
-                        http_body.set_len(*length);
-                    }
-                    if let Err(e) = self.reader.read_exact(&mut http_body) {
-                        if let ErrorKind::WouldBlock = e.kind() {
-                            return Future::Wait;
-                        }
-                        warn!("{}", e);
-                        return Future::Fail("Error reading body");
-                    }
-                    info!(
-                        "Read body with expected size of {} bytes\nand size of {}",
-                        length,
-                        http_body.len()
-                    );
-                    info!("Read the following: {:?}", http_body);
-                    request.body = Some(http_body);
-                    Done(request)
-                }
+                NotStarted => self.parse_not_started(),
+                ParsingFields(_) => self.parse_fields(),
+                ParsingBody(_, _) => self.parse_body(),
+            };
+            match success {
+                Future::Done(_) => {}
+                Future::Wait => return Future::Wait,
+                Future::Fail(e) => return Future::Fail(e),
+            };
+            match &self.state {
+                Moved => println!("Moved"),
+                NotStarted => println!("NotStarted"),
+                ParsingFields(_) => println!("Parsing Fields"),
+                ParsingBody(_, _) => println!("Parsing Body"),
+                Done(_) => println!("Done"),
             }
         }
     }
@@ -172,7 +225,6 @@ fn parse_start(line: String) -> Result<HttpParserState, &'static str> {
     }))
 }
 
-
 fn parse_field(line: String) -> Option<Field> {
     let mut it = line.split(':');
     let key = it.next()?.to_string();
@@ -180,4 +232,3 @@ fn parse_field(line: String) -> Option<Field> {
     val.remove(0);
     Some((key, val))
 }
-
