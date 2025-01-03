@@ -1,3 +1,6 @@
+use std::io::{Error, Write};
+use std::net::TcpStream;
+
 pub type Field = (String, String);
 
 #[derive(Debug, PartialEq, Clone)]
@@ -40,5 +43,34 @@ impl HttpResponse {
             fields: Vec::new(),
             body: body,
         }
+    }
+
+    pub fn respond(&self, stream: &mut TcpStream) -> Result<(), Error> {
+        let mut response = self.version.clone();
+        response += " ";
+        use StatusCode::*;
+        response += match &self.status_code {
+            OK => "200 OK",
+            NotFound => "404 NOT FOUND",
+            NotImplemented => "501 NOT IMPLEMENTED",
+            BadRequest => "400 BAD REQUEST",
+            InternalError => "500 INTERNAL SERVER ERROR",
+        };
+        response += "\r\n";
+
+        for (left, right) in self.fields.iter() {
+            response += &left;
+            response += ": ";
+            response += &right;
+            response += "\r\n";
+        }
+        response += "\r\n";
+        stream.write(response.as_bytes())?;
+
+        if let Some(body) = &self.body {
+            stream.write(&body)?;
+        }
+
+        Ok(())
     }
 }

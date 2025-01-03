@@ -1,4 +1,4 @@
-use crate::http::internal::*;
+use crate::http::parser::*;
 use crate::http::types::{HttpRequest, HttpResponse};
 use crate::{config::Config, info, warn};
 use nix::poll::PollTimeout;
@@ -36,6 +36,7 @@ impl<'a> HttpServer<'a> {
         })
     }
 
+    /*
     pub fn listen(&self) {
         self.listen_async();
         return;
@@ -67,8 +68,10 @@ impl<'a> HttpServer<'a> {
             }
         }
     }
+    */
 
-    pub fn listen_async(&self) {
+    // listens async
+    pub fn listen(&self) {
         if let Err(e) = self.listener.set_nonblocking(true) {
             warn!("{}", e);
             return;
@@ -76,7 +79,7 @@ impl<'a> HttpServer<'a> {
         let epoll = match Epoll::new(EpollCreateFlags::empty()) {
             Ok(p) => p,
             Err(e) => {
-                warn!("Could not make epoll object");
+                warn!("Could not make epoll object: {}", e);
                 return;
             }
         };
@@ -85,7 +88,7 @@ impl<'a> HttpServer<'a> {
             &self.listener.as_fd(),
             EpollEvent::new(EpollFlags::EPOLLIN, DATA),
         ) {
-            warn!("Could not wait for TCP Listener");
+            warn!("Could not wait for TCP Listener: {}", e);
             return;
         }
 
@@ -110,7 +113,7 @@ impl<'a> HttpServer<'a> {
                 Err(_) => {}
             }
             for i in 0..active_parsers.len() {
-                let mut parser = &mut active_parsers[i];
+                let parser = &mut active_parsers[i];
                 match parser.parse() {
                     Future::Done(http_request) => {
                         let http_response = self.default_handler.handle(http_request);
@@ -136,6 +139,7 @@ impl<'a> HttpServer<'a> {
             if let Err(e) = epoll.wait(&mut events, PollTimeout::NONE) {
                 warn!("failed to wait for events: {}", e);
             }
+            println!("events: {:#?}", events);
         }
     }
 }
