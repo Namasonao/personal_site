@@ -11,7 +11,10 @@ impl log::Log for SimpleLogger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            println!("{} - {}", record.level(), record.args());
+            match record.level() {
+                Level::Info => println!("{}", record.args()),
+                _ => println!("{} - {}", record.level(), record.args()),
+            }
         }
     }
 

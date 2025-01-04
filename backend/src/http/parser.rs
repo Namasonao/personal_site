@@ -1,5 +1,5 @@
 use crate::http::types::*;
-use crate::{info, warn};
+use crate::warn;
 use std::io::{BufRead, BufReader, ErrorKind, Read};
 use std::mem;
 use std::net::TcpStream;
@@ -65,7 +65,7 @@ impl AsyncHttpParser {
         }
     }
 
-    fn parse_not_started(&mut self) -> Future<()> {
+    fn parse_start(&mut self) -> Future<()> {
         let HttpParserState::NotStarted = &self.state else {
             return Future::Fail("Unexpected State");
         };
@@ -141,17 +141,11 @@ impl AsyncHttpParser {
             warn!("{}", e);
             return Future::Fail("Error reading body");
         }
-        let HttpParserState::ParsingBody(mut request, length) =
+        let HttpParserState::ParsingBody(mut request, _) =
             mem::replace(&mut self.state, HttpParserState::Moved)
         else {
             return Future::Fail("Unexpected state");
         };
-        info!(
-            "Read body with expected size of {} bytes\nand size of {}",
-            length,
-            http_body.len()
-        );
-        info!("Read the following: {:?}", http_body);
         request.body = Some(http_body);
         self.state = HttpParserState::Done(request);
         Future::Done(())
@@ -175,7 +169,7 @@ impl AsyncHttpParser {
                     };
                     return Future::Done(r);
                 }
-                NotStarted => self.parse_not_started(),
+                NotStarted => self.parse_start(),
                 ParsingFields(_) => self.parse_fields(),
                 ParsingBody(_, _) => self.parse_body(),
             };
@@ -184,13 +178,6 @@ impl AsyncHttpParser {
                 Future::Wait => return Future::Wait,
                 Future::Fail(e) => return Future::Fail(e),
             };
-            match &self.state {
-                Moved => println!("Moved"),
-                NotStarted => println!("NotStarted"),
-                ParsingFields(_) => println!("Parsing Fields"),
-                ParsingBody(_, _) => println!("Parsing Body"),
-                Done(_) => println!("Done"),
-            }
         }
     }
 }
@@ -239,10 +226,13 @@ fn parse_start(line: String) -> Result<HttpParserState, &'static str> {
         Some(s) => s.to_string(),
         None => return Err("Path missing"),
     };
-    let version = match words.next() {
+    let mut version = match words.next() {
         Some(s) => s.to_string(),
         None => return Err("Version missing"),
     };
+    // ignore \r\n
+    _ = version.pop();
+    _ = version.pop();
 
     Ok(HttpParserState::ParsingFields(HttpRequest {
         method: method,

@@ -47,7 +47,7 @@ fn api_add_note(request: HttpRequest) -> HttpResponse {
     };
     let id = note_db::save(&Note::new(text.clone()));
 
-    info!("Stored note {} with text:\n{}", id, text);
+    info!("Stored note {}", id);
 
     let entry = match note_db::get(&id) {
         Some(e) => e,

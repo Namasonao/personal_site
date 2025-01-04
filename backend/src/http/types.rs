@@ -1,5 +1,6 @@
 use std::io::{Error, Write};
 use std::net::TcpStream;
+use std::fmt::Display;
 
 pub type Field = (String, String);
 
@@ -16,6 +17,26 @@ pub struct HttpRequest {
     pub version: String,
     pub fields: Vec<Field>,
     pub body: Option<Vec<u8>>,
+}
+
+impl Display for Method {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match self {
+            Method::Get => write!(f, "GET"),
+            Method::Post => write!(f, "POST"),
+        }
+    }
+}
+
+impl Display for HttpRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(f, "{} {} {}", self.method, self.path, self.version)?;
+        if let Some(b) = &self.body {
+            write!(f, "\t{} bytes", b.len())?;
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug)]

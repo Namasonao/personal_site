@@ -63,9 +63,9 @@ impl<'a> HttpServer<'a> {
         loop {
             match self.listener.accept() {
                 Ok((stream, addr)) => {
-                    info!("Connection established with {}", addr);
+                    //info!("Connection established with {}", addr);
                     if let Err(e) = stream.set_nonblocking(true) {
-                        warn!("Stream will block: {}", e);
+                        warn!("error setting TCP stream to nonblocking: {}", e);
                     }
                     if let Err(e) =
                         epoll.add(&stream.as_fd(), EpollEvent::new(EpollFlags::EPOLLIN, DATA))
@@ -77,7 +77,6 @@ impl<'a> HttpServer<'a> {
                     let mut parser = AsyncHttpParser::new(buf_reader);
                     parser.set_timeout(Duration::from_secs(2));
                     active_parsers.push(parser);
-                    info!("{} active connections", active_parsers.len());
                 }
                 Err(_) => {}
             }
@@ -85,6 +84,7 @@ impl<'a> HttpServer<'a> {
                 let parser = &mut active_parsers[i];
                 match parser.parse() {
                     Future::Done(http_request) => {
+                        info!("{}", http_request);
                         let http_response = self.default_handler.handle(http_request);
                         if let Err(e) = http_response.respond(parser.get_stream()) {
                             warn!("Error responding: {}", e);

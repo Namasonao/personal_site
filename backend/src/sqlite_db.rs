@@ -73,7 +73,7 @@ impl NoteDB for SqliteDB {
             author, time, contents
         );
 
-        println!("{}", query);
+        //println!("{}", query);
         let mut statement = connection.prepare(query).unwrap();
         if let Ok(State::Row) = statement.next() {
             let id: i64 = statement.read::<i64, _>("id").unwrap();
