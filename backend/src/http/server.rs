@@ -4,9 +4,10 @@ use crate::{config::Config, info, warn};
 use nix::poll::PollTimeout;
 use nix::sys::epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags};
 use std::io::{BufReader, Error};
-use std::net::TcpListener;
-use std::os::fd::AsFd;
+//use std::net::TcpListener;
+use crate::socket::{MyListener, MyStream};
 use std::time::Duration;
+use std::os::fd::AsFd;
 
 const DATA: u64 = 17;
 
@@ -16,7 +17,7 @@ pub trait HttpHandler {
 }
 
 pub struct HttpServer<'a> {
-    listener: TcpListener,
+    listener: MyListener,
     default_handler: HttpHandlerT<'a>,
     config: &'a Config,
 }
@@ -26,7 +27,7 @@ impl<'a> HttpServer<'a> {
         config: &'a Config,
         default_handler: HttpHandlerT<'a>,
     ) -> Result<HttpServer<'a>, Error> {
-        let listener = match TcpListener::bind(&config.address) {
+        let listener = match MyListener::bind(&config.address) {
             Ok(l) => l,
             Err(e) => return Err(e),
         };
@@ -39,10 +40,6 @@ impl<'a> HttpServer<'a> {
 
     // listens async
     pub fn listen(&self) {
-        if let Err(e) = self.listener.set_nonblocking(true) {
-            warn!("{}", e);
-            return;
-        }
         let epoll = match Epoll::new(EpollCreateFlags::empty()) {
             Ok(p) => p,
             Err(e) => {
@@ -64,9 +61,6 @@ impl<'a> HttpServer<'a> {
             match self.listener.accept() {
                 Ok((stream, addr)) => {
                     //info!("Connection established with {}", addr);
-                    if let Err(e) = stream.set_nonblocking(true) {
-                        warn!("error setting TCP stream to nonblocking: {}", e);
-                    }
                     if let Err(e) =
                         epoll.add(&stream.as_fd(), EpollEvent::new(EpollFlags::EPOLLIN, DATA))
                     {

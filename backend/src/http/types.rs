@@ -1,5 +1,5 @@
 use std::io::{Error, Write};
-use std::net::TcpStream;
+use crate::socket::MyStream;
 use std::fmt::Display;
 
 pub type Field = (String, String);
@@ -66,7 +66,7 @@ impl HttpResponse {
         }
     }
 
-    pub fn respond(&self, stream: &mut TcpStream) -> Result<(), Error> {
+    pub fn respond(&self, stream: &mut MyStream) -> Result<(), Error> {
         let mut response = self.version.clone();
         response += " ";
         use StatusCode::*;
