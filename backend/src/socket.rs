@@ -17,9 +17,10 @@ pub struct MyStream {
     //tls: rustls::Stream<'static, rustls::ServerConnection, TcpStream>,
 }
 
-fn make_tls_config() -> Result<rustls::ServerConfig, rustls::Error> {
-    let cert_file = "pem/cert.pem";
-    let private_key_file = "pem/key.pem";
+fn make_tls_config(
+    cert_file: &str,
+    private_key_file: &str,
+) -> Result<rustls::ServerConfig, rustls::Error> {
     let certs = CertificateDer::pem_file_iter(cert_file)
         .unwrap()
         .map(|cert| cert.unwrap())
@@ -43,11 +44,11 @@ impl MyListener {
             tls_config: None,
         })
     }
-    pub fn enable_tls(&mut self) -> Result<(), rustls::Error> {
+    pub fn enable_tls(&mut self, cert_fp: &str, key_fp: &str) -> Result<(), rustls::Error> {
         if let Some(_) = self.tls_config {
             panic!("tls already enabled");
         }
-        let config = make_tls_config()?;
+        let config = make_tls_config(cert_fp, key_fp)?;
         self.tls_config = Some(Arc::new(config));
         Ok(())
     }

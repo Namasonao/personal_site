@@ -31,7 +31,9 @@ impl<'a> HttpServer<'a> {
             Ok(l) => l,
             Err(e) => return Err(e),
         };
-        listener.enable_tls();
+        if let Some(tls) = &config.tls {
+            listener.enable_tls(&tls.cert, &tls.key);
+        }
         Ok(HttpServer {
             listener: listener,
             default_handler: default_handler,

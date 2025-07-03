@@ -4,12 +4,25 @@ use std::fmt;
 use std::fs;
 
 #[derive(Debug)]
-pub struct ParseError;
+pub enum ParseError {
+    Missing(String),
+    MissingTls(String),
+    Syntax(Box<dyn Error>),
+}
 impl Error for ParseError {}
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Could not parse config")
+        use ParseError::*;
+        match self {
+            Missing(s) => write!(f, "missing `{}` in json config", s),
+            MissingTls(s) => write!(
+                f,
+                "missing `{}` for tls configuration (or add `allow_insecure` = true)",
+                s
+            ),
+            Syntax(e) => write!(f, "syntax error: {}", e),
+        }
     }
 }
 
@@ -18,13 +31,34 @@ pub struct Config {
     pub address: String,
     pub frontend_dir: String,
     pub database: String,
+    pub tls: Option<TlsConfig>,
 }
 
-fn get_string(v: &serde_json::Value) -> Result<String, ParseError> {
+#[derive(Debug)]
+pub struct TlsConfig {
+    pub cert: String,
+    pub key: String,
+}
+
+fn get_string(cfg: &serde_json::Value, name: &str) -> Result<String, ParseError> {
+    let v = &cfg[name];
     match v {
         Value::String(s) => Ok(s.clone()),
-        _ => Err(ParseError),
+        _ => Err(ParseError::Missing(name.to_string())),
     }
+}
+
+fn get_tls(cfg: &serde_json::Value) -> Result<TlsConfig, ParseError> {
+    use ParseError::*;
+    let cert = match get_string(&cfg, "cert") {
+        Err(Missing(s)) => Err(MissingTls(s)),
+        a => a,
+    }?;
+    let key = match get_string(&cfg, "key") {
+        Err(Missing(s)) => Err(MissingTls(s)),
+        a => a,
+    }?;
+    Ok(TlsConfig { cert, key })
 }
 
 pub fn parse_config_file(fp: &String) -> Result<Config, ParseError> {
@@ -39,13 +73,23 @@ pub fn parse_config_file(fp: &String) -> Result<Config, ParseError> {
     let cfg: serde_json::Value = match serde_json::from_slice(&contents) {
         Ok(c) => c,
         Err(e) => {
-            panic!("Error parsing config: {}", e);
+            return Err(ParseError::Syntax(e.into()));
         }
     };
 
+    let allow_insecure = match &cfg["allow_insecure"] {
+        serde_json::Value::Bool(true) => true,
+        _ => false,
+    };
+    let tls = if allow_insecure {
+        get_tls(&cfg).ok()
+    } else {
+        Some(get_tls(&cfg)?)
+    };
     return Ok(Config {
-        address: get_string(&cfg["address"])?,
-        frontend_dir: get_string(&cfg["frontend_dir"])?,
-        database: get_string(&cfg["database"])?,
+        address: get_string(&cfg, "address")?,
+        frontend_dir: get_string(&cfg, "frontend_dir")?,
+        database: get_string(&cfg, "database")?,
+        tls,
     });
 }
