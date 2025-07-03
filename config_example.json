@@ -2,6 +2,7 @@
 	"address": "127.0.0.1:7878",
 	"frontend_dir": "frontend",
 	"database": "database/test.db",
+   "allow_insecure":  false,
    "cert": "pem/cert.pem",
    "key": "pem/key.pem"
 }
