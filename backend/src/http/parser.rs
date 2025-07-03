@@ -1,6 +1,6 @@
 use crate::http::types::*;
-use crate::warn;
 use crate::socket::MyStream;
+use crate::warn;
 use std::io::{BufRead, BufReader, ErrorKind, Read};
 use std::mem;
 use std::os::fd::{AsFd, BorrowedFd};
@@ -162,13 +162,13 @@ impl AsyncHttpParser {
                 Moved => {
                     warn!("Can not parse moved state");
                     return Future::Fail("??");
-                },
+                }
                 Done(_) => {
                     let Done(r) = mem::replace(&mut self.state, Moved) else {
                         return Future::Fail("");
                     };
                     return Future::Done(r);
-                },
+                }
                 NotStarted => self.parse_start(),
                 ParsingFields(_) => self.parse_fields(),
                 ParsingBody(_, _) => self.parse_body(),

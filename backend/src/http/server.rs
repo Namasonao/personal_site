@@ -6,8 +6,8 @@ use nix::sys::epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags};
 use std::io::{BufReader, Error};
 //use std::net::TcpListener;
 use crate::socket::MyListener;
-use std::time::Duration;
 use std::os::fd::AsFd;
+use std::time::Duration;
 
 const DATA: u64 = 17;
 

@@ -1,10 +1,10 @@
-use std::net::{TcpListener, TcpStream, SocketAddr};
-use std::io::{Read, Write};
 use crate::warn;
-use std::os::fd::{AsFd, BorrowedFd};
-use std::sync::Arc;
 use rustls::pki_types::pem::PemObject;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+use std::io::{Read, Write};
+use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::os::fd::{AsFd, BorrowedFd};
+use std::sync::Arc;
 
 pub struct MyListener {
     tcp: TcpListener,
@@ -16,7 +16,6 @@ pub struct MyStream {
     conn: Option<rustls::ServerConnection>,
     //tls: rustls::Stream<'static, rustls::ServerConnection, TcpStream>,
 }
-
 
 fn make_tls_config() -> Result<rustls::ServerConfig, rustls::Error> {
     let cert_file = "pem/cert.pem";
@@ -39,7 +38,10 @@ impl MyListener {
         if let Err(e) = listener.set_nonblocking(true) {
             warn!("error setting listener to nonblocking: {}", e);
         }
-        Ok(MyListener { tcp: listener, tls_config: None })
+        Ok(MyListener {
+            tcp: listener,
+            tls_config: None,
+        })
     }
     pub fn enable_tls(&mut self) -> Result<(), rustls::Error> {
         if let Some(_) = self.tls_config {
@@ -59,7 +61,13 @@ impl MyListener {
             let Ok(conn) = rustls::ServerConnection::new(config.clone()) else {
                 panic!("could not make tls connection")
             };
-            Ok((MyStream { tcp: s, conn: Some(conn) }, addr))
+            Ok((
+                MyStream {
+                    tcp: s,
+                    conn: Some(conn),
+                },
+                addr,
+            ))
         } else {
             warn!("insecure connection");
             Ok((MyStream { tcp: s, conn: None }, addr))
@@ -71,7 +79,6 @@ impl AsFd for MyListener {
     fn as_fd(&self) -> Fd<'_> {
         self.tcp.as_fd()
     }
-
 }
 
 impl MyStream {

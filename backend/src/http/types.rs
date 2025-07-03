@@ -1,6 +1,6 @@
-use std::io::{Error, Write};
 use crate::socket::MyStream;
 use std::fmt::Display;
+use std::io::{Error, Write};
 
 pub type Field = (String, String);
 
