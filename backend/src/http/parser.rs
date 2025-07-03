@@ -162,13 +162,13 @@ impl AsyncHttpParser {
                 Moved => {
                     warn!("Can not parse moved state");
                     return Future::Fail("??");
-                }
+                },
                 Done(_) => {
                     let Done(r) = mem::replace(&mut self.state, Moved) else {
                         return Future::Fail("");
                     };
                     return Future::Done(r);
-                }
+                },
                 NotStarted => self.parse_start(),
                 ParsingFields(_) => self.parse_fields(),
                 ParsingBody(_, _) => self.parse_body(),

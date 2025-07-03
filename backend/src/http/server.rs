@@ -5,7 +5,7 @@ use nix::poll::PollTimeout;
 use nix::sys::epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags};
 use std::io::{BufReader, Error};
 //use std::net::TcpListener;
-use crate::socket::{MyListener, MyStream};
+use crate::socket::MyListener;
 use std::time::Duration;
 use std::os::fd::AsFd;
 
@@ -27,10 +27,11 @@ impl<'a> HttpServer<'a> {
         config: &'a Config,
         default_handler: HttpHandlerT<'a>,
     ) -> Result<HttpServer<'a>, Error> {
-        let listener = match MyListener::bind(&config.address) {
+        let mut listener = match MyListener::bind(&config.address) {
             Ok(l) => l,
             Err(e) => return Err(e),
         };
+        listener.enable_tls();
         Ok(HttpServer {
             listener: listener,
             default_handler: default_handler,
@@ -60,7 +61,7 @@ impl<'a> HttpServer<'a> {
         loop {
             match self.listener.accept() {
                 Ok((stream, addr)) => {
-                    //info!("Connection established with {}", addr);
+                    info!("Connection established with {}", addr);
                     if let Err(e) =
                         epoll.add(&stream.as_fd(), EpollEvent::new(EpollFlags::EPOLLIN, DATA))
                     {
@@ -74,7 +75,7 @@ impl<'a> HttpServer<'a> {
                 }
                 Err(_) => {}
             }
-            for i in 0..active_parsers.len() {
+            'parser_loop: for i in 0..active_parsers.len() {
                 let parser = &mut active_parsers[i];
                 match parser.parse() {
                     Future::Done(http_request) => {
@@ -88,12 +89,12 @@ impl<'a> HttpServer<'a> {
                             warn!("Could not delete fd from epoll: {}", e);
                         }
                         active_parsers.remove(i);
-                        break;
+                        break 'parser_loop;
                     }
                     Future::Fail(e) => {
                         warn!("Invalid HTTP: {}", e);
                         active_parsers.remove(i);
-                        break;
+                        break 'parser_loop;
                     }
                     Future::Wait => {}
                 }
