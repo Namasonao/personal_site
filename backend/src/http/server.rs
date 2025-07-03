@@ -82,7 +82,8 @@ impl<'a> HttpServer<'a> {
                     }
                 },
             }
-            'parser_loop: for i in 0..active_parsers.len() {
+            let mut i = 0;
+            while i < active_parsers.len() {
                 let parser = &mut active_parsers[i];
                 match parser.parse() {
                     Future::Done(http_request) => {
@@ -95,16 +96,25 @@ impl<'a> HttpServer<'a> {
                         if let Err(e) = epoll.delete(&parser.as_fd()) {
                             warn!("Could not delete fd from epoll: {}", e);
                         }
-                        active_parsers.remove(i);
-                        break 'parser_loop;
+                        if i == active_parsers.len() - 1 {
+                            _ = active_parsers.pop();
+                        } else {
+                            active_parsers[i] = active_parsers.pop().unwrap();
+                            continue;
+                        }
                     }
                     Future::Fail(e) => {
                         warn!("Invalid HTTP: {}", e);
-                        active_parsers.remove(i);
-                        break 'parser_loop;
+                        if i == active_parsers.len() - 1 {
+                            _ = active_parsers.pop();
+                        } else {
+                            active_parsers[i] = active_parsers.pop().unwrap();
+                            continue;
+                        }
                     }
                     Future::Wait => {}
-                }
+                };
+                i += 1;
             }
             let mut events = [EpollEvent::empty()];
             if let Err(e) = epoll.wait(&mut events, PollTimeout::NONE) {
