@@ -57,12 +57,17 @@
 <div class="block-div">
 	<p>You could go <a href="/notes/">here</a></p>
 </div>
+<div class="block-div">
+   <p>You do not seem to be logged in!</p>
+   <input type="text" id="create-account-name" value="" placeholder="Username">
+   <input type="button" id="create-account-submit" name="button" value="Create Account"><br>
+</div>
 
 <div class="block-div">
 	<form id="note-add">
 		<label for="add-note">Text (TODO: make this stuff look nice):</label><br>
 		<textarea class="whole-note" id="add-note-input" name="text" placeholder="Write down your notes here..."></textarea><br>
-		<input type="button" id="add-note-submit" name="button" value="Submit"><br>
+		<input type="button" id="add-note-submit" value="Submit"><br>
 	</form>
 </div>
 <div class="block-div" id="note-structure">

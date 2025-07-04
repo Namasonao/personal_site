@@ -1,5 +1,6 @@
 const notes = document.getElementById("note-structure");
 const textbox = document.getElementById("add-note-input");
+const creation_username = document.getElementById("create-account-name");
 
 async function onSubmitNotePress(data) {
 	console.log(textbox);
@@ -22,6 +23,30 @@ async function onSubmitNotePress(data) {
 	addNoteToDom(apiNote);
 	console.log('Received response, updating note');
 	console.log(apiNote);
+}
+
+async function onCreateAccountPress(data) {
+   console.log(creation_username);
+   const username = creation_username.value;
+   if (!username) {
+      return;
+   }
+
+   const response = await fetch("/api/create-account", {
+      method: "POST",
+      body: JSON.stringify({
+         name: username,
+      }),
+      headers: {},
+   });
+   console.log(response);
+   const login_info = await response.json();
+   console.log(login_info);
+   localStorage.setItem("account", JSON.stringify({
+      name: username,
+      id: login_info.id,
+      passkey: login_info.passkey,
+   }));
 }
 
 async function onDeleteNotePress(data, root) {
@@ -117,4 +142,7 @@ async function renderNotes() {
 
 const send = document.querySelector("#add-note-submit");
 send.addEventListener("click", onSubmitNotePress);
+const account_create = document.querySelector("#create-account-submit");
+account_create.addEventListener("click", onCreateAccountPress);
 renderNotes();
+console.log(localStorage.account);

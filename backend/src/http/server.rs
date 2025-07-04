@@ -74,13 +74,13 @@ impl<'a> HttpServer<'a> {
                     let mut parser = AsyncHttpParser::new(buf_reader);
                     parser.set_timeout(Duration::from_secs(2));
                     active_parsers.push(parser);
-                },
+                }
                 Err(e) => {
                     if e.kind() == std::io::ErrorKind::WouldBlock {
                     } else {
                         warn!("accept error: {}", e);
                     }
-                },
+                }
             }
             let mut i = 0;
             while i < active_parsers.len() {

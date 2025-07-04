@@ -2,7 +2,10 @@ use crate::http::server::HttpHandler;
 use crate::http::types::{HttpRequest, HttpResponse, Method, StatusCode};
 use crate::note_db::{self, Note, NoteId};
 use crate::{info, warn};
+use base64::{prelude::BASE64_STANDARD, Engine};
+use getrandom;
 use serde_json::{self, json};
+use std::hash::{self, Hash, Hasher};
 
 pub struct ApiHandler {}
 impl HttpHandler for ApiHandler {
@@ -120,6 +123,52 @@ fn api_delete_note(request: HttpRequest) -> HttpResponse {
     HttpResponse::new(StatusCode::OK, None)
 }
 
+fn api_create_account(request: HttpRequest) -> HttpResponse {
+    if request.method != Method::Post {
+        return bad_request();
+    }
+    info!("Request to create user");
+    let body_bytes = match request.body {
+        Some(b) => b,
+        None => return bad_request(),
+    };
+    let body: serde_json::Value = match serde_json::from_slice(&body_bytes) {
+        Ok(c) => c,
+        Err(_) => return bad_request(),
+    };
+    let name = match get_string(&body["name"]) {
+        Some(s) => s,
+        None => return bad_request(),
+    };
+    let (passkey, hash) = generate_passkey();
+    let time = note_db::now();
+    let id = note_db::create_user(&name, time, hash);
+
+    let result = json!({
+        "id": id,
+        "passkey": &BASE64_STANDARD.encode(passkey),
+    });
+    let body = match serde_json::to_string(&result) {
+        Ok(n) => Some(n.into_bytes()),
+        Err(e) => {
+            warn!("{}", e);
+            None
+        }
+    };
+    HttpResponse::new(StatusCode::OK, body)
+}
+
+fn generate_passkey() -> (Vec<u8>, i64) {
+    let mut vec = Vec::new();
+    vec.resize(64, 0);
+    getrandom::fill(vec.as_mut_slice());
+
+    let mut s = hash::DefaultHasher::new();
+    vec.hash(&mut s);
+    let hash = s.finish() as i64;
+    (vec, hash)
+}
+
 fn hello_world() -> HttpResponse {
     HttpResponse::new(StatusCode::OK, Some("hello world!".as_bytes().to_vec()))
 }
@@ -131,6 +180,7 @@ fn handle_api(request: HttpRequest) -> HttpResponse {
         "add-note" => api_add_note(request),
         "get-notes" => api_get_notes(request),
         "delete-note" => api_delete_note(request),
+        "create-account" => api_create_account(request),
         "hello" => hello_world(),
         "not-implemented" => HttpResponse::new(StatusCode::NotImplemented, None),
         _ => HttpResponse::new(StatusCode::NotFound, None),

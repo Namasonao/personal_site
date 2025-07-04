@@ -1,4 +1,4 @@
-use crate::note_db::{Note, NoteDB, NoteEntry, NoteId};
+use crate::note_db::{Note, NoteDB, NoteEntry, NoteId, UserId};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use sqlite::{open, Connection, State, Statement};
 use std::path::Path;
@@ -133,5 +133,29 @@ impl NoteDB for SqliteDB {
         }
 
         entries
+    }
+
+    fn create_user(&mut self, name: &str, time: i64, passkey: i64) -> UserId {
+        let connection = match &self.connection {
+            Some(c) => c,
+            None => panic!("no connection"),
+        };
+
+        let name = into_sql_string(name);
+        let query = format!(
+            "
+        INSERT INTO users (name, time, passkey) 
+        VALUES ({}, {}, {})
+        RETURNING id
+        ",
+            name, time, passkey
+        );
+
+        let mut statement = connection.prepare(query).unwrap();
+        if let Ok(State::Row) = statement.next() {
+            let id: i64 = statement.read::<i64, _>("id").unwrap();
+            return id;
+        }
+        return -1;
     }
 }
