@@ -2,10 +2,10 @@ use crate::http::server::HttpHandler;
 use crate::http::types::{HttpRequest, HttpResponse, Method, StatusCode};
 use crate::note_db::{self, Note, NoteId};
 use crate::{info, warn};
+use crate::authenticator;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use getrandom;
 use serde_json::{self, json};
-use std::hash::{self, Hash, Hasher};
 
 pub struct ApiHandler {}
 impl HttpHandler for ApiHandler {
@@ -16,6 +16,10 @@ impl HttpHandler for ApiHandler {
 
 fn bad_request() -> HttpResponse {
     HttpResponse::new(StatusCode::BadRequest, None)
+}
+
+fn not_authenticated() -> HttpResponse {
+    HttpResponse::new(StatusCode::Unauthorized, None)
 }
 
 fn get_string(v: &serde_json::Value) -> Option<String> {
@@ -35,6 +39,14 @@ fn get_id(v: &serde_json::Value) -> Option<NoteId> {
 
 fn api_add_note(request: HttpRequest) -> HttpResponse {
     info!("Request to add note");
+    let passkey = match authenticator::authenticate_request(&request) {
+        Ok(pk) => pk,
+        Err(e) => {
+            warn!("authentication failed: {}", e);
+            return not_authenticated();
+        },
+    };
+
     let body_bytes = match request.body {
         Some(b) => b,
         None => return bad_request(),
@@ -140,7 +152,7 @@ fn api_create_account(request: HttpRequest) -> HttpResponse {
         Some(s) => s,
         None => return bad_request(),
     };
-    let (passkey, hash) = generate_passkey();
+    let (passkey, hash) = authenticator::generate_passkey();
     let time = note_db::now();
     note_db::create_user(&name, time, hash);
 
@@ -155,17 +167,6 @@ fn api_create_account(request: HttpRequest) -> HttpResponse {
         }
     };
     HttpResponse::new(StatusCode::OK, body)
-}
-
-fn generate_passkey() -> (Vec<u8>, i64) {
-    let mut vec = Vec::new();
-    vec.resize(64, 0);
-    getrandom::fill(vec.as_mut_slice());
-
-    let mut s = hash::DefaultHasher::new();
-    vec.hash(&mut s);
-    let hash = s.finish() as i64;
-    (vec, hash)
 }
 
 fn hello_world() -> HttpResponse {

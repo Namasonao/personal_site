@@ -43,6 +43,7 @@ impl Display for HttpRequest {
 pub enum StatusCode {
     OK,
     BadRequest,
+    Unauthorized,
     NotFound,
     InternalError,
     NotImplemented,
@@ -75,6 +76,7 @@ impl HttpResponse {
             NotFound => "404 NOT FOUND",
             NotImplemented => "501 NOT IMPLEMENTED",
             BadRequest => "400 BAD REQUEST",
+            Unauthorized => "401 UNAUTHORIZED",
             InternalError => "500 INTERNAL SERVER ERROR",
         };
         response += "\r\n";

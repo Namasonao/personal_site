@@ -152,4 +152,26 @@ impl NoteDB for SqliteDB {
 
         connection.execute(query).unwrap();
     }
+
+    fn get_user_by_passkey(&mut self, passkey: i64) -> Option<()> {
+        let connection = match &self.connection {
+            Some(c) => c,
+            None => panic!("no connection"),
+        };
+
+        let query = format!(
+            "
+            SELECT COUNT(*) FROM users WHERE passkey={}
+            ",
+            passkey
+        );
+        let mut statement = connection.prepare(query).unwrap();
+        while let Ok(State::Row) = statement.next() {
+            let count: i64 = statement.read::<i64, _>(0).unwrap();
+            if count == 1 {
+                return Some(());
+            }
+        }
+        None
+    }
 }

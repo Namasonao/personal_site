@@ -2,6 +2,15 @@ const notes = document.getElementById("note-structure");
 const textbox = document.getElementById("add-note-input");
 const creation_username = document.getElementById("create-account-name");
 
+function get_passkey() {
+   try {
+      const acc = JSON.parse(localStorage.account);
+      return acc.passkey;
+   } catch (e) {
+      return "";
+   }
+}
+
 async function onSubmitNotePress(data) {
 	console.log(textbox);
 	const text = textbox.value;
@@ -16,8 +25,23 @@ async function onSubmitNotePress(data) {
 		body: JSON.stringify({
 			note: text,
 		}),
-		headers: {},
+		headers: {
+         passkey: get_passkey(),
+      },
 	});
+   if (response.status !== 200) {
+
+
+      domNote.children[0].innerText = "FAILED: " + response.status;
+      const deleteButton = document.createElement("input");
+      deleteButton.type = "button";
+      deleteButton.classList.add("delete-button");
+      deleteButton.addEventListener("click", (data) => {
+         domNote.remove();
+      });
+      domNote.children[0].appendChild(deleteButton);
+      return;
+   }
 	const apiNote = await response.json();
 	domNote.remove();
 	addNoteToDom(apiNote);
@@ -44,7 +68,6 @@ async function onCreateAccountPress(data) {
    console.log(login_info);
    localStorage.setItem("account", JSON.stringify({
       name: username,
-      id: login_info.id,
       passkey: login_info.passkey,
    }));
 }
@@ -80,11 +103,11 @@ async function getNotesFromDb() {
 function noteHeader(root) {
 	console.log(root.apiNote);
 	if (root.apiNote.id === undefined) {
-	const header = document.createElement("div");
-	header.innerText = "Submitting...";
-	header.classList.add("note-header");
-	return header;
-}
+      const header = document.createElement("div");
+      header.innerText = "Submitting...";
+      header.classList.add("note-header");
+      return header;
+   }
 	const deleteButton = document.createElement("input");
 	deleteButton.type = "button";
 	deleteButton.classList.add("delete-button");
