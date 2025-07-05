@@ -142,10 +142,9 @@ fn api_create_account(request: HttpRequest) -> HttpResponse {
     };
     let (passkey, hash) = generate_passkey();
     let time = note_db::now();
-    let id = note_db::create_user(&name, time, hash);
+    note_db::create_user(&name, time, hash);
 
     let result = json!({
-        "id": id,
         "passkey": &BASE64_STANDARD.encode(passkey),
     });
     let body = match serde_json::to_string(&result) {

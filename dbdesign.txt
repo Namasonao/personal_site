@@ -1,8 +1,8 @@
 table __notes:
 
-__id(INTEGER)   |  author(INTEGER) |  time(INTEGER)   |  contents(TEXT)  |
+__id(INTEGER)      |  author(INTEGER) |  time(INTEGER)   |  contents(TEXT)  |
 
 
 table __users:
 
-__id(INTEGER)   |  name(TEXT)      |  time(INTEGER)   | passkey(INTEGER) |
+__passkey(INTEGER) |  name(TEXT)      |  time(INTEGER)   |

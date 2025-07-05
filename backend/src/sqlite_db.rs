@@ -135,7 +135,7 @@ impl NoteDB for SqliteDB {
         entries
     }
 
-    fn create_user(&mut self, name: &str, time: i64, passkey: i64) -> UserId {
+    fn create_user(&mut self, name: &str, time: i64, passkey: i64) {
         let connection = match &self.connection {
             Some(c) => c,
             None => panic!("no connection"),
@@ -144,18 +144,12 @@ impl NoteDB for SqliteDB {
         let name = into_sql_string(name);
         let query = format!(
             "
-        INSERT INTO users (name, time, passkey) 
+        INSERT INTO users (passkey, name, time) 
         VALUES ({}, {}, {})
-        RETURNING id
         ",
-            name, time, passkey
+            passkey, name, time
         );
 
-        let mut statement = connection.prepare(query).unwrap();
-        if let Ok(State::Row) = statement.next() {
-            let id: i64 = statement.read::<i64, _>("id").unwrap();
-            return id;
-        }
-        return -1;
+        connection.execute(query).unwrap();
     }
 }
