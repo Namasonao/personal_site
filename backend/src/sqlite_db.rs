@@ -92,7 +92,7 @@ impl NoteDB for SqliteDB {
 
         let query = format!(
             "
-        SELECT * FROM notes WHERE id IS {}
+        SELECT * FROM notes WHERE id={}
         ",
             id
         );
@@ -111,7 +111,7 @@ impl NoteDB for SqliteDB {
         };
         let query = format!(
             "
-        DELETE FROM notes WHERE id IS {}
+        DELETE FROM notes WHERE id={}
         ",
             id
         );
@@ -134,14 +134,13 @@ impl NoteDB for SqliteDB {
         connection.execute(query).unwrap();
     }
 
-    fn all(&self) -> Vec<NoteEntry> {
+    fn public(&self) -> Vec<NoteEntry> {
         let connection = match &self.connection {
             Some(c) => c,
             None => return Vec::new(),
         };
         let query = "SELECT * FROM notes";
         let mut statement = connection.prepare(query).unwrap();
-        //statement.bind((1)).unwrap();
         let mut entries: Vec<NoteEntry> = Vec::new();
         while let Ok(State::Row) = statement.next() {
             if let Some(entry) = statement_to_entry(&statement) {

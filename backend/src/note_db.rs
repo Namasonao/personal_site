@@ -50,7 +50,7 @@ pub trait NoteDB {
     fn get(&self, id: &NoteId) -> Option<NoteEntry>;
     fn delete(&mut self, id: &NoteId);
     fn delete_if_user(&mut self, id: &NoteId, passkey: i64);
-    fn all(&self) -> Vec<NoteEntry>;
+    fn public(&self) -> Vec<NoteEntry>;
     fn by_passkey(&self, passkey: i64) -> Vec<NoteEntry>;
 
     fn create_user(&mut self, name: &str, time: i64, passkey: i64) -> Option<()>;
@@ -73,8 +73,8 @@ pub fn delete_if_user(id: &NoteId, passkey: i64) {
     unsafe { DATABASE.delete_if_user(id, passkey) }
 }
 
-pub fn all() -> Vec<NoteEntry> {
-    unsafe { DATABASE.all() }
+pub fn public() -> Vec<NoteEntry> {
+    unsafe { DATABASE.public() }
 }
 
 pub fn by_passkey(passkey: i64) -> Vec<NoteEntry> {
