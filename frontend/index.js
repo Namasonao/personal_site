@@ -22,11 +22,14 @@ function setAccInfo(name, passkey) {
 }
 
 async function onSubmitNotePress(data) {
-	console.log(textbox);
 	const text = textbox.value;
 	if (!text) {
 		return;
 	}
+   if (!accInfo) {
+      console.log("Login before you add notes!");
+      return;
+   }
 	const note = {};
 	note.text = text;
 	const domNote = addNoteToDom(note);
@@ -40,8 +43,6 @@ async function onSubmitNotePress(data) {
       },
 	});
    if (response.status !== 200) {
-
-
       domNote.children[0].innerText = "FAILED: " + response.status;
       const deleteButton = document.createElement("input");
       deleteButton.type = "button";
@@ -52,11 +53,11 @@ async function onSubmitNotePress(data) {
       domNote.children[0].appendChild(deleteButton);
       return;
    }
+   textbox.value = "";
 	const apiNote = await response.json();
 	domNote.remove();
 	addNoteToDom(apiNote);
 	console.log('Received response, updating note');
-	console.log(apiNote);
 }
 
 async function onCreateAccountPress(data) {
@@ -87,7 +88,6 @@ async function onDeleteNotePress(data, root) {
       return;
    }
 	const nId = root.apiNote.id;
-	console.log(nId);
 	const response = await fetch("/api/delete-note", {
 		method: "POST",
 		body: JSON.stringify({
@@ -106,7 +106,6 @@ async function onDeleteNotePress(data, root) {
 
 async function getNotesFromDb() {
    if (!accInfo) {
-      console.log("NOT LOGGED IN, NOOB");
       return {};
    }
 	const response = await fetch("/api/get-notes", {
@@ -118,12 +117,10 @@ async function getNotesFromDb() {
 	if (!response.ok) {
 		return null;
 	}
-	console.log(response.body);
 	return await response.json();
 }
 
 function noteHeader(root) {
-	console.log(root.apiNote);
 	if (root.apiNote.id === undefined) {
       const header = document.createElement("div");
       header.innerText = "Submitting...";
@@ -210,8 +207,6 @@ function showLoggedIn() {
 
 async function renderNotes() {
 	const notes_json = await getNotesFromDb();
-	console.log("notes json:");
-	console.log(notes_json);
 	for (let i = 0; i < notes_json.length; i++) {
 		addNoteToDom(notes_json[i]);
 	}
@@ -223,6 +218,9 @@ function copyPasskeyToClipboard() {
 
 function logout() {
    console.log("Logged out of: `" + accInfo.passkey + "`"); 
+   while (notes.children.length > 1) {
+      notes.removeChild(notes.lastChild);
+   }
    localStorage.removeItem("account");
    accInfo = null;
    showLoggedOut();
@@ -247,6 +245,7 @@ async function login() {
       showLoggedOut();
    } else {
       setAccInfo(body.username, passkey);
+      renderNotes();
    }
 }
 
