@@ -1,9 +1,9 @@
 use crate::http::types::{HttpRequest, HttpResponse, Method, StatusCode};
 use crate::note_db::{self, UserId};
 use crate::{info, warn};
-use std::hash::{self, Hash, Hasher};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use std::fmt;
+use std::hash::{self, Hash, Hasher};
 
 #[derive(Debug)]
 pub enum AuthenticationError {
@@ -23,7 +23,7 @@ pub fn generate_passkey() -> (Vec<u8>, i64) {
     vec.resize(64, 0);
     match getrandom::fill(vec.as_mut_slice()) {
         Err(e) => panic!("source of randomness failed: {}", e),
-        Ok(()) => {},
+        Ok(()) => {}
     };
 
     let hash = generate_hash(&vec);
@@ -48,7 +48,7 @@ pub fn authenticate_request(req: &HttpRequest) -> Result<i64, AuthenticationErro
         Err(e) => {
             warn!("invalid base64 for passkey: {}", e);
             return Err(AuthenticationError::MalformedInformation);
-        },
+        }
     };
 
     let hash = generate_hash(&passkey);
@@ -57,6 +57,7 @@ pub fn authenticate_request(req: &HttpRequest) -> Result<i64, AuthenticationErro
         return Err(AuthenticationError::IncorrectPasskey);
     };
 
+    info!("{} authenticated", hash);
     Ok(hash)
 }
 

@@ -1,8 +1,8 @@
+use crate::authenticator;
 use crate::http::server::HttpHandler;
 use crate::http::types::{HttpRequest, HttpResponse, Method, StatusCode};
 use crate::note_db::{self, Note, NoteId};
 use crate::{info, warn};
-use crate::authenticator;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use getrandom;
 use serde_json::{self, json};
@@ -44,7 +44,7 @@ fn api_add_note(request: HttpRequest) -> HttpResponse {
         Err(e) => {
             warn!("authentication failed: {}", e);
             return not_authenticated();
-        },
+        }
     };
 
     let body_bytes = match request.body {
@@ -60,7 +60,7 @@ fn api_add_note(request: HttpRequest) -> HttpResponse {
         Some(t) => t,
         None => return bad_request(),
     };
-    let id = note_db::save(&Note::new(text.clone()));
+    let id = note_db::save(&Note::new(text.clone(), passkey));
 
     info!("Stored note {}", id);
 
@@ -96,7 +96,14 @@ fn api_get_notes(request: HttpRequest) -> HttpResponse {
         return bad_request();
     }
     info!("Request to get notes");
-    let note_entries = note_db::all();
+    let passkey = match authenticator::authenticate_request(&request) {
+        Ok(pk) => pk,
+        Err(e) => {
+            warn!("authentication failed: {}", e);
+            return not_authenticated();
+        }
+    };
+    let note_entries = note_db::by_passkey(passkey);
     let mut resp = "[".to_string();
     for entry in note_entries.into_iter() {
         let note = match stringify_note(entry) {
@@ -116,6 +123,14 @@ fn api_get_notes(request: HttpRequest) -> HttpResponse {
 
 fn api_delete_note(request: HttpRequest) -> HttpResponse {
     info!("Request to delete notes");
+    let passkey = match authenticator::authenticate_request(&request) {
+        Ok(pk) => pk,
+        Err(e) => {
+            warn!("authentication failed: {}", e);
+            return not_authenticated();
+        }
+    };
+
     let body_bytes = match request.body {
         Some(b) => b,
         None => return bad_request(),
@@ -130,7 +145,7 @@ fn api_delete_note(request: HttpRequest) -> HttpResponse {
         Some(s) => s,
         None => return bad_request(),
     };
-    note_db::delete(&id);
+    note_db::delete_if_user(&id, passkey);
 
     HttpResponse::new(StatusCode::OK, None)
 }

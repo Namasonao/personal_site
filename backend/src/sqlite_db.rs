@@ -1,4 +1,4 @@
-use crate::note_db::{Note, NoteDB, NoteEntry, NoteId, UserId};
+use crate::note_db::{Note, NoteDB, NoteEntry, NoteId};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use sqlite::{open, Connection, State, Statement};
 use std::path::Path;
@@ -33,7 +33,7 @@ fn statement_to_entry(statement: &Statement<'_>) -> Option<NoteEntry> {
 
 fn statement_to_entry_err(statement: &Statement<'_>) -> Result<NoteEntry, sqlite::Error> {
     let id: i64 = statement.read::<i64, _>("id")?;
-    let _author: i64 = statement.read::<i64, _>("author")?;
+    let author: i64 = statement.read::<i64, _>("author")?;
     let time: i64 = statement.read::<i64, _>("time")?;
     let contents = from_sql_string(&statement.read::<String, _>("contents")?);
     let entry = NoteEntry {
@@ -41,6 +41,7 @@ fn statement_to_entry_err(statement: &Statement<'_>) -> Result<NoteEntry, sqlite
         note: Note {
             text: contents,
             date: time,
+            author,
         },
     };
     Ok(entry)
@@ -61,7 +62,7 @@ impl NoteDB for SqliteDB {
             None => return -1,
         };
 
-        let author = 0;
+        let author = n.author;
         let time = &n.date;
         let contents = into_sql_string(&n.text);
         let query = format!(
@@ -117,6 +118,21 @@ impl NoteDB for SqliteDB {
         connection.execute(query).unwrap();
     }
 
+    fn delete_if_user(&mut self, id: &NoteId, passkey: i64) {
+        let connection = match &self.connection {
+            Some(c) => c,
+            None => return,
+        };
+        let query = format!(
+            "
+        DELETE FROM notes WHERE id={} AND author={}
+        ",
+            id, passkey
+        );
+
+        connection.execute(query).unwrap();
+    }
+
     fn all(&self) -> Vec<NoteEntry> {
         let connection = match &self.connection {
             Some(c) => c,
@@ -132,6 +148,23 @@ impl NoteDB for SqliteDB {
             }
         }
 
+        entries
+    }
+
+    fn by_passkey(&self, passkey: i64) -> Vec<NoteEntry> {
+        let connection = match &self.connection {
+            Some(c) => c,
+            None => panic!("no connection"),
+        };
+        let query = format!("SELECT * FROM notes WHERE author={}", passkey);
+
+        let mut statement = connection.prepare(query).unwrap();
+        let mut entries: Vec<NoteEntry> = Vec::new();
+        while let Ok(State::Row) = statement.next() {
+            if let Some(entry) = statement_to_entry(&statement) {
+                entries.push(entry);
+            }
+        }
         entries
     }
 

@@ -1,11 +1,11 @@
 mod api;
+mod authenticator;
 mod config;
 mod http;
 mod my_logger;
 mod note_db;
 mod socket;
 mod sqlite_db;
-mod authenticator;
 use crate::api::ApiHandler;
 use crate::config::*;
 use crate::http::server::*;

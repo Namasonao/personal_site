@@ -61,7 +61,8 @@ async function onCreateAccountPress(data) {
       body: JSON.stringify({
          name: username,
       }),
-      headers: {},
+      headers: {
+      },
    });
    console.log(response);
    const login_info = await response.json();
@@ -80,7 +81,9 @@ async function onDeleteNotePress(data, root) {
 		body: JSON.stringify({
 			id: nId,
 		}),
-		headers: {},
+		headers: {
+         passkey: get_passkey(),
+      },
 	});
 	console.log("Delete response:");
 	console.log(response);
@@ -92,6 +95,9 @@ async function onDeleteNotePress(data, root) {
 async function getNotesFromDb() {
 	const response = await fetch("/api/get-notes", {
 		method: "GET",
+      headers: {
+         passkey: get_passkey(),
+      },
 	});
 	if (!response.ok) {
 		return null;
