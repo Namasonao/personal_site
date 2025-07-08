@@ -169,7 +169,10 @@ fn api_create_account(request: HttpRequest) -> HttpResponse {
     };
     let (passkey, hash) = authenticator::generate_passkey();
     let time = note_db::now();
-    note_db::create_user(&name, time, hash);
+    match note_db::create_user(&name, time, hash) {
+        Some(()) => {},
+        None => return bad_request(),
+    };
 
     let result = json!({
         "passkey": &BASE64_STANDARD.encode(passkey),

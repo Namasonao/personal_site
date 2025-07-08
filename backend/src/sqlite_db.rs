@@ -2,6 +2,7 @@ use crate::note_db::{Note, NoteDB, NoteEntry, NoteId};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use sqlite::{open, Connection, State, Statement};
 use std::path::Path;
+use crate::warn;
 
 pub enum DBError {
     Fail,
@@ -168,7 +169,7 @@ impl NoteDB for SqliteDB {
         entries
     }
 
-    fn create_user(&mut self, name: &str, time: i64, passkey: i64) {
+    fn create_user(&mut self, name: &str, time: i64, passkey: i64) -> Option<()> {
         let connection = match &self.connection {
             Some(c) => c,
             None => panic!("no connection"),
@@ -183,7 +184,13 @@ impl NoteDB for SqliteDB {
             passkey, name, time
         );
 
-        connection.execute(query).unwrap();
+        match connection.execute(query) {
+            Ok(()) => return Some(()),
+            Err(e) => {
+                warn!("Error creating user: {}", e);
+                return None
+            },
+        }
     }
 
     fn get_user_by_passkey(&mut self, passkey: i64) -> Option<String> {
