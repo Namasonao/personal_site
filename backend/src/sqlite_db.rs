@@ -201,8 +201,8 @@ impl NoteDB for SqliteDB {
         let mut statement = connection.prepare(query).unwrap();
         while let Ok(State::Row) = statement.next() {
             let count: i64 = statement.read::<i64, _>(0).unwrap();
-            let name = from_sql_string(&statement.read::<String, _>(1).unwrap());
             if count == 1 {
+                let name = from_sql_string(&statement.read::<String, _>(1).unwrap());
                 return Some(name);
             }
         }

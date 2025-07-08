@@ -30,7 +30,7 @@ pub fn generate_passkey() -> (Vec<u8>, i64) {
     (vec, hash)
 }
 
-pub fn authenticate_request(req: &HttpRequest) -> Result<i64, AuthenticationError> {
+pub fn authenticate_request(req: &HttpRequest) -> Result<(i64, String), AuthenticationError> {
     info!("authenticating request...");
     let mut passkey64: Option<&str> = None;
     for (key, value) in &req.fields {
@@ -58,7 +58,7 @@ pub fn authenticate_request(req: &HttpRequest) -> Result<i64, AuthenticationErro
     };
 
     info!("{} authenticated as {}", hash, name);
-    Ok(hash)
+    Ok((hash, name))
 }
 
 fn generate_hash(bytes: &[u8]) -> i64 {

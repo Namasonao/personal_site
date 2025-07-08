@@ -1,6 +1,7 @@
 const notes = document.getElementById("note-structure");
 const textbox = document.getElementById("add-note-input");
 const creation_username = document.getElementById("create-account-name");
+let passkey = get_passkey();
 
 function get_passkey() {
    try {
@@ -26,7 +27,7 @@ async function onSubmitNotePress(data) {
 			note: text,
 		}),
 		headers: {
-         passkey: get_passkey(),
+         passkey: passkey,
       },
 	});
    if (response.status !== 200) {
@@ -74,6 +75,9 @@ async function onCreateAccountPress(data) {
 }
 
 async function onDeleteNotePress(data, root) {
+   if (passkey === "") {
+      return;
+   }
 	const nId = root.apiNote.id;
 	console.log(nId);
 	const response = await fetch("/api/delete-note", {
@@ -82,7 +86,7 @@ async function onDeleteNotePress(data, root) {
 			id: nId,
 		}),
 		headers: {
-         passkey: get_passkey(),
+         passkey: passkey,
       },
 	});
 	console.log("Delete response:");
@@ -93,10 +97,13 @@ async function onDeleteNotePress(data, root) {
 }
 
 async function getNotesFromDb() {
+   if (passkey === "") {
+      return {};
+   }
 	const response = await fetch("/api/get-notes", {
 		method: "GET",
       headers: {
-         passkey: get_passkey(),
+         passkey: passkey,
       },
 	});
 	if (!response.ok) {
@@ -160,6 +167,24 @@ function addNoteToDom(note) {
 	return root;
 }
 
+async function checkLogin() {
+	const response = await fetch("/api/who-am-i", {
+		method: "GET",
+      headers: {
+         passkey: passkey,
+      },
+	});
+	const body = await response.json();
+   const login_div = document.getElementById("login-div");
+   if (body.authenticated !== true) {
+      login_div.children[0].hidden = false;
+   } else {
+      const welcome_div = document.createElement("div");
+      welcome_div.innerText = "Welcome, " + body.username + "!";
+      login_div.appendChild(welcome_div);
+   }
+}
+
 async function renderNotes() {
 	const notes_json = await getNotesFromDb();
 	console.log("notes json:");
@@ -173,5 +198,6 @@ const send = document.querySelector("#add-note-submit");
 send.addEventListener("click", onSubmitNotePress);
 const account_create = document.querySelector("#create-account-submit");
 account_create.addEventListener("click", onCreateAccountPress);
+checkLogin();
 renderNotes();
 console.log(localStorage.account);

@@ -40,7 +40,7 @@ fn get_id(v: &serde_json::Value) -> Option<NoteId> {
 fn api_add_note(request: HttpRequest) -> HttpResponse {
     info!("Request to add note");
     let passkey = match authenticator::authenticate_request(&request) {
-        Ok(pk) => pk,
+        Ok((pk, _)) => pk,
         Err(e) => {
             warn!("authentication failed: {}", e);
             return not_authenticated();
@@ -97,7 +97,7 @@ fn api_get_notes(request: HttpRequest) -> HttpResponse {
     }
     info!("Request to get notes");
     let passkey = match authenticator::authenticate_request(&request) {
-        Ok(pk) => pk,
+        Ok((pk, _)) => pk,
         Err(e) => {
             warn!("authentication failed: {}", e);
             return not_authenticated();
@@ -124,7 +124,7 @@ fn api_get_notes(request: HttpRequest) -> HttpResponse {
 fn api_delete_note(request: HttpRequest) -> HttpResponse {
     info!("Request to delete notes");
     let passkey = match authenticator::authenticate_request(&request) {
-        Ok(pk) => pk,
+        Ok((pk, _)) => pk,
         Err(e) => {
             warn!("authentication failed: {}", e);
             return not_authenticated();
@@ -184,6 +184,31 @@ fn api_create_account(request: HttpRequest) -> HttpResponse {
     HttpResponse::new(StatusCode::OK, body)
 }
 
+fn api_who_am_i(request: HttpRequest) -> HttpResponse {
+    if request.method != Method::Get {
+        return bad_request();
+    }
+    info!("Request to who-am-i");
+    let result = match authenticator::authenticate_request(&request) {
+        Ok(info) => json!({
+            "authenticated": true,
+            "username": info.1,
+        }),
+        Err(e) => json!({
+            "authenticated": false,
+            "username": "",
+        })
+    };
+    let body = match serde_json::to_string(&result) {
+        Ok(n) => Some(n.into_bytes()),
+        Err(e) => {
+            warn!("{}", e);
+            None
+        }
+    };
+    HttpResponse::new(StatusCode::OK, body)
+}
+
 fn hello_world() -> HttpResponse {
     HttpResponse::new(StatusCode::OK, Some("hello world!".as_bytes().to_vec()))
 }
@@ -196,6 +221,7 @@ fn handle_api(request: HttpRequest) -> HttpResponse {
         "get-notes" => api_get_notes(request),
         "delete-note" => api_delete_note(request),
         "create-account" => api_create_account(request),
+        "who-am-i" => api_who_am_i(request),
         "hello" => hello_world(),
         "not-implemented" => HttpResponse::new(StatusCode::NotImplemented, None),
         _ => HttpResponse::new(StatusCode::NotFound, None),
