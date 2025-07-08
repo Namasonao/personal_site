@@ -53,15 +53,16 @@ pub fn authenticate_request(req: &HttpRequest) -> Result<i64, AuthenticationErro
 
     let hash = generate_hash(&passkey);
 
-    let Some(()) = note_db::get_user_by_passkey(hash) else {
+    let Some(name) = note_db::get_user_by_passkey(hash) else {
         return Err(AuthenticationError::IncorrectPasskey);
     };
 
-    info!("{} authenticated", hash);
+    info!("{} authenticated as {}", hash, name);
     Ok(hash)
 }
 
 fn generate_hash(bytes: &[u8]) -> i64 {
+    // This is not a secure hash function, but it is a quick and simple solution
     let mut s = hash::DefaultHasher::new();
     bytes.hash(&mut s);
     s.finish() as i64

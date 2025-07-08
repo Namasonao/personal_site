@@ -54,7 +54,7 @@ pub trait NoteDB {
     fn by_passkey(&self, passkey: i64) -> Vec<NoteEntry>;
 
     fn create_user(&mut self, name: &str, time: i64, passkey: i64);
-    fn get_user_by_passkey(&mut self, passkey: i64) -> Option<()>;
+    fn get_user_by_passkey(&mut self, passkey: i64) -> Option<String>;
 }
 
 pub fn save(n: &Note) -> NoteId {
@@ -91,6 +91,6 @@ pub fn create_user(name: &str, time: i64, passkey: i64) {
     unsafe { DATABASE.create_user(name, time, passkey) }
 }
 
-pub fn get_user_by_passkey(passkey: i64) -> Option<()> {
+pub fn get_user_by_passkey(passkey: i64) -> Option<String> {
     unsafe { DATABASE.get_user_by_passkey(passkey) }
 }
