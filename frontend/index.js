@@ -1,15 +1,24 @@
 const notes = document.getElementById("note-structure");
 const textbox = document.getElementById("add-note-input");
 const creation_username = document.getElementById("create-account-name");
-let passkey = get_passkey();
+let accInfo = getAccInfo();
 
-function get_passkey() {
+function getAccInfo() {
    try {
       const acc = JSON.parse(localStorage.account);
-      return acc.passkey;
+      return acc;
    } catch (e) {
-      return "";
+      return null;
    }
+}
+
+function setAccInfo(name, passkey) {
+   localStorage.setItem("account", JSON.stringify({
+      name: name,
+      passkey: passkey,
+   }));
+   accInfo = getAccInfo();
+   showLoggedIn();
 }
 
 async function onSubmitNotePress(data) {
@@ -27,7 +36,7 @@ async function onSubmitNotePress(data) {
 			note: text,
 		}),
 		headers: {
-         passkey: passkey,
+         passkey: accInfo.passkey,
       },
 	});
    if (response.status !== 200) {
@@ -65,17 +74,16 @@ async function onCreateAccountPress(data) {
       headers: {
       },
    });
-   console.log(response);
+   if (response.status !== 200) {
+      console.log("Invalid USERNAME");
+      return;
+   }
    const login_info = await response.json();
-   console.log(login_info);
-   localStorage.setItem("account", JSON.stringify({
-      name: username,
-      passkey: login_info.passkey,
-   }));
+   setAccInfo(username, login_info.passkey);
 }
 
 async function onDeleteNotePress(data, root) {
-   if (passkey === "") {
+   if (!passkey) {
       return;
    }
 	const nId = root.apiNote.id;
@@ -86,7 +94,7 @@ async function onDeleteNotePress(data, root) {
 			id: nId,
 		}),
 		headers: {
-         passkey: passkey,
+         passkey: accInfo.passkey,
       },
 	});
 	console.log("Delete response:");
@@ -97,13 +105,14 @@ async function onDeleteNotePress(data, root) {
 }
 
 async function getNotesFromDb() {
-   if (passkey === "") {
+   if (!accInfo) {
+      console.log("NOT LOGGED IN, NOOB");
       return {};
    }
 	const response = await fetch("/api/get-notes", {
 		method: "GET",
       headers: {
-         passkey: passkey,
+         passkey: accInfo.passkey,
       },
 	});
 	if (!response.ok) {
@@ -168,21 +177,35 @@ function addNoteToDom(note) {
 }
 
 async function checkLogin() {
+   if (!accInfo) {
+      showLoggedOut();
+      return;
+   }
 	const response = await fetch("/api/who-am-i", {
 		method: "GET",
       headers: {
-         passkey: passkey,
+         passkey: accInfo.passkey,
       },
 	});
 	const body = await response.json();
-   const login_div = document.getElementById("login-div");
    if (body.authenticated !== true) {
-      login_div.children[0].hidden = false;
+      showLoggedOut();
    } else {
-      const welcome_div = document.createElement("div");
-      welcome_div.innerText = "Welcome, " + body.username + "!";
-      login_div.appendChild(welcome_div);
+      showLoggedIn();
    }
+}
+
+const login_div = document.getElementById("login-div");
+const username_box = document.getElementById("username-box");
+function showLoggedOut() {
+   login_div.children[0].hidden = false;
+   login_div.children[1].hidden = true;
+}
+
+function showLoggedIn() {
+   login_div.children[0].hidden = true;
+   login_div.children[1].hidden = false;
+   username_box.innerText = accInfo.name;
 }
 
 async function renderNotes() {
@@ -192,6 +215,39 @@ async function renderNotes() {
 	for (let i = 0; i < notes_json.length; i++) {
 		addNoteToDom(notes_json[i]);
 	}
+}
+
+function copyPasskeyToClipboard() {
+   navigator.clipboard.writeText(accInfo.passkey);
+}
+
+function logout() {
+   console.log("Logged out of: `" + accInfo.passkey + "`"); 
+   localStorage.removeItem("account");
+   accInfo = null;
+   showLoggedOut();
+}
+
+const loginKeyBox = document.getElementById("login-passkey-box");
+async function login() {
+   const passkey = loginKeyBox.value;
+	const response = await fetch("/api/who-am-i", {
+		method: "GET",
+      headers: {
+         passkey: passkey,
+      },
+	});
+   if (response.status !== 200) {
+      console.log("login failed! please retry");
+      return;
+   }
+
+	const body = await response.json();
+   if (body.authenticated !== true) {
+      showLoggedOut();
+   } else {
+      setAccInfo(body.username, passkey);
+   }
 }
 
 const send = document.querySelector("#add-note-submit");

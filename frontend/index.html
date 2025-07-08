@@ -60,8 +60,16 @@
 <div class="block-div" id="login-div" >
    <div hidden>
       <p>You do not seem to be logged in!</p>
+      <input type="text" id="login-passkey-box" value="" placeholder="Passkey">
+      <input type="button" onclick="login()" name="button" value="Login"><br>
+      <p>Already have an account? Create a new one below!</p>
       <input type="text" id="create-account-name" value="" placeholder="Username">
       <input type="button" id="create-account-submit" name="button" value="Create Account"><br>
+   </div>
+   <div hidden>
+      <p> Welcome, <em id="username-box"></em>!</p>
+      <input type="button" onclick="logout()" value="Logout">
+      <input type="button" onclick="copyPasskeyToClipboard()" value="Copy passkey">
    </div>
 </div>
 
