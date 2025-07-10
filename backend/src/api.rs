@@ -1,6 +1,6 @@
 use crate::authenticator;
-use crate::http::server::HttpHandler;
-use crate::http::types::{HttpRequest, HttpResponse, Method, StatusCode};
+use http::server::HttpHandler;
+use http::types::{HttpRequest, HttpResponse, Method, StatusCode};
 use crate::note_db::{self, Note, NoteId};
 use crate::{info, warn};
 use crate::base64;

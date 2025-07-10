@@ -2,6 +2,7 @@ use serde_json::Value;
 use std::error::Error;
 use std::fmt;
 use std::fs;
+use http::{ServerConfig, TlsConfig};
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -28,16 +29,9 @@ impl fmt::Display for ParseError {
 
 #[derive(Debug)]
 pub struct Config {
-    pub address: String,
     pub frontend_dir: String,
     pub database: String,
-    pub tls: Option<TlsConfig>,
-}
-
-#[derive(Debug)]
-pub struct TlsConfig {
-    pub cert: String,
-    pub key: String,
+    pub http: ServerConfig,
 }
 
 fn get_string(cfg: &serde_json::Value, name: &str) -> Result<String, ParseError> {
@@ -86,10 +80,13 @@ pub fn parse_config_file(fp: &String) -> Result<Config, ParseError> {
     } else {
         Some(get_tls(&cfg)?)
     };
-    return Ok(Config {
+    let http = ServerConfig {
         address: get_string(&cfg, "address")?,
+        tls,
+    };
+    return Ok(Config {
         frontend_dir: get_string(&cfg, "frontend_dir")?,
         database: get_string(&cfg, "database")?,
-        tls,
+        http,
     });
 }

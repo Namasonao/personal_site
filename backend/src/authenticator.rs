@@ -1,4 +1,4 @@
-use crate::http::types::{HttpRequest, HttpResponse, Method, StatusCode};
+use http::types::{HttpRequest, HttpResponse, Method, StatusCode};
 use crate::note_db::{self, UserId};
 use crate::{info, warn};
 use crate::base64;

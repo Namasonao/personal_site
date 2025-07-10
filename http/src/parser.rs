@@ -1,6 +1,6 @@
-use crate::http::types::*;
-use crate::socket::MyStream;
-use crate::warn;
+use crate::types::*;
+use crate::socket::Stream;
+use log::warn;
 use std::io::{BufRead, BufReader, ErrorKind, Read};
 use std::mem;
 use std::os::fd::{AsFd, BorrowedFd};
@@ -27,7 +27,7 @@ struct TimeoutInfo {
 
 pub struct AsyncHttpParser {
     state: HttpParserState,
-    reader: BufReader<MyStream>,
+    reader: BufReader<Stream>,
     timeout_info: Option<TimeoutInfo>,
 }
 
@@ -36,11 +36,11 @@ impl AsyncHttpParser {
         return self.reader.get_ref().as_fd();
     }
 
-    pub fn get_stream(&mut self) -> &mut MyStream {
+    pub fn get_stream(&mut self) -> &mut Stream {
         self.reader.get_mut()
     }
 
-    pub fn new(reader: BufReader<MyStream>) -> AsyncHttpParser {
+    pub fn new(reader: BufReader<Stream>) -> AsyncHttpParser {
         AsyncHttpParser {
             state: HttpParserState::NotStarted,
             reader: reader,

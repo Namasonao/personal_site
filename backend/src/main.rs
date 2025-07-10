@@ -1,16 +1,14 @@
 mod api;
 mod authenticator;
 mod config;
-mod http;
 mod my_logger;
 mod note_db;
-mod socket;
 mod sqlite_db;
 mod base64;
 use crate::api::ApiHandler;
 use crate::config::*;
-use crate::http::server::*;
-use crate::http::types::*;
+use http::server::*;
+use http::types::*;
 use crate::my_logger::*;
 use std::env;
 use std::fs;
@@ -73,7 +71,7 @@ fn main() {
     println!("{:#?}", cfg);
 
     let http_handler = MyHandler { config: &cfg };
-    let http_server = match HttpServer::new(&cfg, Box::new(http_handler)) {
+    let http_server = match HttpServer::new(&cfg.http, Box::new(http_handler)) {
         Ok(s) => s,
         Err(e) => panic!("{}", e),
     };

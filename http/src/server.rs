@@ -1,11 +1,11 @@
-use crate::http::parser::*;
-use crate::http::types::{HttpRequest, HttpResponse};
-use crate::{config::Config, info, warn};
+use crate::ServerConfig;
+use crate::parser::*;
+use crate::socket::Listener;
+use crate::types::{HttpRequest, HttpResponse};
+use log::{info, warn};
 use nix::poll::PollTimeout;
 use nix::sys::epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags};
 use std::io::{BufReader, Error};
-//use std::net::TcpListener;
-use crate::socket::MyListener;
 use std::os::fd::AsFd;
 use std::time::Duration;
 
@@ -17,27 +17,25 @@ pub trait HttpHandler {
 }
 
 pub struct HttpServer<'a> {
-    listener: MyListener,
+    listener: Listener,
     default_handler: HttpHandlerT<'a>,
-    config: &'a Config,
 }
 
 impl<'a> HttpServer<'a> {
     pub fn new(
-        config: &'a Config,
+        config: &'a ServerConfig,
         default_handler: HttpHandlerT<'a>,
     ) -> Result<HttpServer<'a>, Error> {
-        let mut listener = match MyListener::bind(&config.address) {
+        let mut listener = match Listener::bind(&config.address) {
             Ok(l) => l,
             Err(e) => return Err(e),
         };
         if let Some(tls) = &config.tls {
-            listener.enable_tls(&tls.cert, &tls.key);
+            listener.enable_tls(&tls.cert, &tls.key).unwrap();
         }
         Ok(HttpServer {
             listener: listener,
             default_handler: default_handler,
-            config: config,
         })
     }
 

@@ -1,4 +1,4 @@
-use crate::socket::MyStream;
+use crate::socket::Stream;
 use std::fmt::Display;
 use std::io::{Error, Write};
 
@@ -67,7 +67,7 @@ impl HttpResponse {
         }
     }
 
-    pub fn respond(&self, stream: &mut MyStream) -> Result<(), Error> {
+    pub fn respond(&self, stream: &mut Stream) -> Result<(), Error> {
         let mut response = self.version.clone();
         response += " ";
         use StatusCode::*;

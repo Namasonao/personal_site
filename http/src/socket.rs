@@ -1,4 +1,4 @@
-use crate::warn;
+use log::warn;
 use rustls::pki_types::pem::PemObject;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use std::io::{Read, Write};
@@ -6,12 +6,12 @@ use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::os::fd::{AsFd, BorrowedFd};
 use std::sync::Arc;
 
-pub struct MyListener {
+pub struct Listener {
     tcp: TcpListener,
     tls_config: Option<Arc<rustls::ServerConfig>>,
 }
 
-pub struct MyStream {
+pub struct Stream {
     tcp: TcpStream,
     conn: Option<rustls::ServerConnection>,
     //tls: rustls::Stream<'static, rustls::ServerConnection, TcpStream>,
@@ -33,13 +33,13 @@ fn make_tls_config(
 }
 
 type Fd<'a> = BorrowedFd<'a>;
-impl MyListener {
-    pub fn bind(addr: &str) -> std::io::Result<MyListener> {
+impl Listener {
+    pub fn bind(addr: &str) -> std::io::Result<Listener> {
         let listener = TcpListener::bind(addr)?;
         if let Err(e) = listener.set_nonblocking(true) {
             warn!("error setting listener to nonblocking: {}", e);
         }
-        Ok(MyListener {
+        Ok(Listener {
             tcp: listener,
             tls_config: None,
         })
@@ -53,7 +53,7 @@ impl MyListener {
         Ok(())
     }
 
-    pub fn accept(&self) -> std::io::Result<(MyStream, SocketAddr)> {
+    pub fn accept(&self) -> std::io::Result<(Stream, SocketAddr)> {
         let (s, addr) = self.tcp.accept()?;
         if let Err(e) = s.set_nonblocking(true) {
             warn!("error setting stream to nonblocking: {}", e);
@@ -63,7 +63,7 @@ impl MyListener {
                 panic!("could not make tls connection")
             };
             Ok((
-                MyStream {
+                Stream {
                     tcp: s,
                     conn: Some(conn),
                 },
@@ -71,35 +71,35 @@ impl MyListener {
             ))
         } else {
             warn!("insecure connection");
-            Ok((MyStream { tcp: s, conn: None }, addr))
+            Ok((Stream { tcp: s, conn: None }, addr))
         }
     }
 }
 
-impl AsFd for MyListener {
+impl AsFd for Listener {
     fn as_fd(&self) -> Fd<'_> {
         self.tcp.as_fd()
     }
 }
 
-impl MyStream {
+impl Stream {
     /*
-    pub fn new(tcp: TcpStream) -> MyStream {
+    pub fn new(tcp: TcpStream) -> Stream {
         if let Err(e) = tcp.set_nonblocking(true) {
             warn!("error setting TCP stream to nonblocking: {}", e);
         }
-        MyStream { tcp }
+        Stream { tcp }
     }
     */
 }
 
-impl AsFd for MyStream {
+impl AsFd for Stream {
     fn as_fd(&self) -> Fd<'_> {
         self.tcp.as_fd()
     }
 }
 
-impl Read for MyStream {
+impl Read for Stream {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         if let Some(conn) = &mut self.conn {
             let mut tls_stream = rustls::Stream::new(conn, &mut self.tcp);
@@ -110,7 +110,7 @@ impl Read for MyStream {
     }
 }
 
-impl Write for MyStream {
+impl Write for Stream {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         if let Some(conn) = &mut self.conn {
             let mut tls_stream = rustls::Stream::new(conn, &mut self.tcp);
