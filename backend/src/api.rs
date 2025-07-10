@@ -3,7 +3,7 @@ use crate::http::server::HttpHandler;
 use crate::http::types::{HttpRequest, HttpResponse, Method, StatusCode};
 use crate::note_db::{self, Note, NoteId};
 use crate::{info, warn};
-use base64::{prelude::BASE64_STANDARD, Engine};
+use crate::base64;
 use getrandom;
 use serde_json::{self, json};
 
@@ -175,7 +175,7 @@ fn api_create_account(request: HttpRequest) -> HttpResponse {
     };
 
     let result = json!({
-        "passkey": &BASE64_STANDARD.encode(passkey),
+        "passkey": base64::encode(&passkey),
     });
     let body = match serde_json::to_string(&result) {
         Ok(n) => Some(n.into_bytes()),

@@ -1,5 +1,5 @@
 use crate::note_db::{Note, NoteDB, NoteEntry, NoteId};
-use base64::{prelude::BASE64_STANDARD, Engine};
+use crate::base64;
 use sqlite::{open, Connection, State, Statement};
 use std::path::Path;
 use crate::warn;
@@ -49,11 +49,11 @@ fn statement_to_entry_err(statement: &Statement<'_>) -> Result<NoteEntry, sqlite
 }
 
 fn into_sql_string(string: &str) -> String {
-    return "'".to_string() + &BASE64_STANDARD.encode(string) + "'";
+    return "'".to_string() + &base64::encode(string.as_bytes()) + "'";
 }
 
 fn from_sql_string(string: &str) -> String {
-    return String::from_utf8(BASE64_STANDARD.decode(string).unwrap()).unwrap();
+    return String::from_utf8(base64::decode(string).unwrap()).unwrap();
 }
 
 impl NoteDB for SqliteDB {

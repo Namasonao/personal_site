@@ -6,6 +6,7 @@ mod my_logger;
 mod note_db;
 mod socket;
 mod sqlite_db;
+mod base64;
 use crate::api::ApiHandler;
 use crate::config::*;
 use crate::http::server::*;

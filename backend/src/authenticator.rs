@@ -1,7 +1,7 @@
 use crate::http::types::{HttpRequest, HttpResponse, Method, StatusCode};
 use crate::note_db::{self, UserId};
 use crate::{info, warn};
-use base64::{prelude::BASE64_STANDARD, Engine};
+use crate::base64;
 use std::fmt;
 use std::hash::{self, Hash, Hasher};
 
@@ -43,7 +43,7 @@ pub fn authenticate_request(req: &HttpRequest) -> Result<(i64, String), Authenti
         return Err(AuthenticationError::MissingInformation);
     };
 
-    let passkey = match BASE64_STANDARD.decode(passkey64) {
+    let passkey = match base64::decode(passkey64) {
         Ok(pk) => pk,
         Err(e) => {
             warn!("invalid base64 for passkey: {}", e);
