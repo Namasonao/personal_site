@@ -84,7 +84,7 @@ async function onCreateAccountPress(data) {
 }
 
 async function onDeleteNotePress(data, root) {
-   if (!passkey) {
+   if (!accInfo.passkey) {
       return;
    }
 	const nId = root.apiNote.id;
