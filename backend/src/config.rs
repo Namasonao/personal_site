@@ -1,8 +1,8 @@
+use http::{ServerConfig, TlsConfig};
 use serde_json::Value;
 use std::error::Error;
 use std::fmt;
 use std::fs;
-use http::{ServerConfig, TlsConfig};
 
 #[derive(Debug)]
 pub enum ParseError {

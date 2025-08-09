@@ -1,8 +1,8 @@
-use crate::note_db::{Note, NoteDB, NoteEntry, NoteId};
 use crate::base64;
+use crate::note_db::{Note, NoteDB, NoteEntry, NoteId};
+use crate::warn;
 use sqlite::{open, Connection, State, Statement};
 use std::path::Path;
-use crate::warn;
 
 pub enum DBError {
     Fail,
@@ -187,8 +187,8 @@ impl NoteDB for SqliteDB {
             Ok(()) => return Some(()),
             Err(e) => {
                 warn!("Error creating user: {}", e);
-                return None
-            },
+                return None;
+            }
         }
     }
 

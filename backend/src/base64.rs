@@ -8,7 +8,7 @@ fn index(i: u8) -> char {
 enum Decoded {
     Ok(u8),
     Padding,
-    Fault
+    Fault,
 }
 fn reverse(c: char) -> Decoded {
     let cu = c as u8;
@@ -49,7 +49,7 @@ pub fn encode(bytes: &[u8]) -> String {
                 s.push(index(bits));
                 s.push('=');
                 s.push('=');
-                break
+                break;
             }
         };
         let bits = (b1 & 0b11) << 4;
@@ -86,8 +86,6 @@ impl std::fmt::Display for DecodeError {
     }
 }
 impl std::error::Error for DecodeError {}
-
-
 
 pub fn decode(string: &str) -> Result<Vec<u8>, DecodeError> {
     let mut ret = Vec::new();
@@ -143,7 +141,6 @@ pub fn decode(string: &str) -> Result<Vec<u8>, DecodeError> {
     Ok(ret)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -171,7 +168,8 @@ mod tests {
     #[test]
     fn test_random() {
         let result = encode(b"askdzhfyxclkjvpoiuwioqejrkaospldfvpyoxcjvmoaksdj");
-        let expected = "YXNrZHpoZnl4Y2xranZwb2l1d2lvcWVqcmthb3NwbGRmdnB5b3hjanZtb2Frc2Rq".to_string();
+        let expected =
+            "YXNrZHpoZnl4Y2xranZwb2l1d2lvcWVqcmthb3NwbGRmdnB5b3hjanZtb2Frc2Rq".to_string();
         assert_eq!(result, expected);
     }
 
@@ -188,7 +186,7 @@ mod tests {
         let result = decode(&("YWI=".to_string())).unwrap();
         assert_eq!(result, expected);
     }
-    
+
     #[test]
     fn test_decode_3() {
         let expected = b"abc";
@@ -206,7 +204,10 @@ mod tests {
     #[test]
     fn test_decode_random() {
         let expected = b"askdzhfyxclkjvpoiuwioqejrkaospldfvpyoxcjvmoaksdj";
-        let result = decode(&("YXNrZHpoZnl4Y2xranZwb2l1d2lvcWVqcmthb3NwbGRmdnB5b3hjanZtb2Frc2Rq".to_string())).unwrap();
+        let result = decode(
+            &("YXNrZHpoZnl4Y2xranZwb2l1d2lvcWVqcmthb3NwbGRmdnB5b3hjanZtb2Frc2Rq".to_string()),
+        )
+        .unwrap();
         assert_eq!(result, expected);
     }
 

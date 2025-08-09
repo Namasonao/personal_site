@@ -1,15 +1,15 @@
 mod api;
 mod authenticator;
+mod base64;
 mod config;
 mod my_logger;
 mod note_db;
 mod sqlite_db;
-mod base64;
 use crate::api::ApiHandler;
 use crate::config::*;
+use crate::my_logger::*;
 use http::server::*;
 use http::types::*;
-use crate::my_logger::*;
 use std::env;
 use std::fs;
 

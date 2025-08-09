@@ -1,10 +1,10 @@
 use crate::authenticator;
-use http::server::HttpHandler;
-use http::types::{HttpRequest, HttpResponse, Method, StatusCode};
+use crate::base64;
 use crate::note_db::{self, Note, NoteId};
 use crate::{info, warn};
-use crate::base64;
 use getrandom;
+use http::server::HttpHandler;
+use http::types::{HttpRequest, HttpResponse, Method, StatusCode};
 use serde_json::{self, json};
 
 pub struct ApiHandler {}
@@ -170,7 +170,7 @@ fn api_create_account(request: HttpRequest) -> HttpResponse {
     let (passkey, hash) = authenticator::generate_passkey();
     let time = note_db::now();
     match note_db::create_user(&name, time, hash) {
-        Some(()) => {},
+        Some(()) => {}
         None => return bad_request(),
     };
 
@@ -200,7 +200,7 @@ fn api_who_am_i(request: HttpRequest) -> HttpResponse {
         Err(e) => json!({
             "authenticated": false,
             "username": "",
-        })
+        }),
     };
     let body = match serde_json::to_string(&result) {
         Ok(n) => Some(n.into_bytes()),

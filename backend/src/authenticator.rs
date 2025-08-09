@@ -1,7 +1,7 @@
-use http::types::{HttpRequest, HttpResponse, Method, StatusCode};
+use crate::base64;
 use crate::note_db::{self, UserId};
 use crate::{info, warn};
-use crate::base64;
+use http::types::{HttpRequest, HttpResponse, Method, StatusCode};
 use std::fmt;
 use std::hash::{self, Hash, Hasher};
 
