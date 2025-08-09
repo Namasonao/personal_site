@@ -1,6 +1,8 @@
+use crate::parser::Future;
 use crate::socket::Stream;
 use std::fmt::Display;
 use std::io::{Error, Write};
+use std::os::fd::{AsFd, BorrowedFd};
 
 pub type Field = (String, String);
 
@@ -57,6 +59,62 @@ pub struct HttpResponse {
     pub body: Option<Vec<u8>>,
 }
 
+pub struct Responder {
+    bytes: Vec<u8>,
+    sent: usize,
+    stream: Stream,
+}
+
+impl Responder {
+    pub fn as_fd(&self) -> BorrowedFd {
+        return self.stream.as_fd();
+    }
+    pub fn from_http_response(r: HttpResponse, stream: Stream) -> Responder {
+        let mut response = r.version;
+        response += " ";
+        use StatusCode::*;
+        response += match r.status_code {
+            OK => "200 OK",
+            NotFound => "404 NOT FOUND",
+            NotImplemented => "501 NOT IMPLEMENTED",
+            BadRequest => "400 BAD REQUEST",
+            Unauthorized => "401 UNAUTHORIZED",
+            InternalError => "500 INTERNAL SERVER ERROR",
+        };
+        response += "\r\n";
+
+        for (left, right) in r.fields.into_iter() {
+            response += &left;
+            response += ": ";
+            response += &right;
+            response += "\r\n";
+        }
+        response += "\r\n";
+
+        let mut bytes = response.into_bytes();
+        if let Some(body) = r.body {
+            bytes.extend(body);
+        }
+        Responder {
+            bytes,
+            sent: 0,
+            stream,
+        }
+    }
+
+    pub fn respond(&mut self) -> Future<()> {
+        let n = match self.stream.write(&self.bytes[self.sent..]) {
+            Ok(n) => n,
+            Err(e) => panic!("RESPOND FAILED: {}", e),
+        };
+        self.sent += n;
+        if self.sent == self.bytes.len() {
+            return Future::Done(());
+        }
+        Future::Wait
+    }
+}
+
 impl HttpResponse {
     pub fn new(code: StatusCode, body: Option<Vec<u8>>) -> HttpResponse {
         HttpResponse {
@@ -67,6 +125,7 @@ impl HttpResponse {
         }
     }
 
+    /*
     pub fn respond(&self, stream: &mut Stream) -> Result<(), Error> {
         let mut response = self.version.clone();
         response += " ";
@@ -96,4 +155,5 @@ impl HttpResponse {
 
         Ok(())
     }
+    */
 }

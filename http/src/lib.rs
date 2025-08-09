@@ -1,12 +1,12 @@
 mod parser;
 pub mod server;
-pub mod types;
 pub mod socket;
+pub mod types;
 
 #[derive(Debug)]
 pub struct ServerConfig {
     pub address: String,
-    pub tls: Option<TlsConfig>
+    pub tls: Option<TlsConfig>,
 }
 
 #[derive(Debug)]

@@ -1,5 +1,5 @@
-use crate::types::*;
 use crate::socket::Stream;
+use crate::types::*;
 use log::warn;
 use std::io::{BufRead, BufReader, ErrorKind, Read};
 use std::mem;
@@ -38,6 +38,9 @@ impl AsyncHttpParser {
 
     pub fn get_stream(&mut self) -> &mut Stream {
         self.reader.get_mut()
+    }
+    pub fn into_stream(self) -> Stream {
+        self.reader.into_inner()
     }
 
     pub fn new(reader: BufReader<Stream>) -> AsyncHttpParser {

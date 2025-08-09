@@ -82,17 +82,6 @@ impl AsFd for Listener {
     }
 }
 
-impl Stream {
-    /*
-    pub fn new(tcp: TcpStream) -> Stream {
-        if let Err(e) = tcp.set_nonblocking(true) {
-            warn!("error setting TCP stream to nonblocking: {}", e);
-        }
-        Stream { tcp }
-    }
-    */
-}
-
 impl AsFd for Stream {
     fn as_fd(&self) -> Fd<'_> {
         self.tcp.as_fd()

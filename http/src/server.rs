@@ -1,7 +1,7 @@
 use crate::ServerConfig;
 use crate::parser::*;
 use crate::socket::Listener;
-use crate::types::{HttpRequest, HttpResponse};
+use crate::types::{HttpRequest, HttpResponse, Responder};
 use log::{info, warn};
 use nix::poll::PollTimeout;
 use nix::sys::epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags};
@@ -58,6 +58,7 @@ impl<'a> HttpServer<'a> {
         }
 
         let mut active_parsers: Vec<AsyncHttpParser> = Vec::new();
+        let mut active_responders: Vec<Responder> = Vec::new();
         loop {
             match self.listener.accept() {
                 Ok((stream, addr)) => {
@@ -86,34 +87,66 @@ impl<'a> HttpServer<'a> {
                 match parser.parse() {
                     Future::Done(http_request) => {
                         info!("{}", http_request);
+                        let parser = active_parsers.swap_remove(i);
                         let http_response = self.default_handler.handle(http_request);
-                        if let Err(e) = http_response.respond(parser.get_stream()) {
-                            warn!("Error responding: {}", e);
-                            continue;
-                        }
-                        if let Err(e) = epoll.delete(&parser.as_fd()) {
-                            warn!("Could not delete fd from epoll: {}", e);
-                        }
-                        if i == active_parsers.len() - 1 {
-                            _ = active_parsers.pop();
+                        let mut responder =
+                            Responder::from_http_response(http_response, parser.into_stream());
+                        if match responder.respond() {
+                            Future::Done(()) => false,
+                            Future::Wait => true,
+                            Future::Fail(s) => {
+                                warn!("response failed: {}", s);
+                                false
+                            }
+                        } {
+                            if let Err(e) = epoll.modify(
+                                responder.as_fd(),
+                                &mut EpollEvent::new(EpollFlags::EPOLLOUT, DATA),
+                            ) {
+                                warn!("failed to modify fd: {}", e);
+                            }
+                            info!("could not send full response... adding responder to queue");
+                            active_responders.push(responder);
+                            info!("queue of {} responders", active_responders.len());
                         } else {
-                            active_parsers[i] = active_parsers.pop().unwrap();
-                            continue;
+                            if let Err(e) = epoll.delete(responder.as_fd()) {
+                                warn!("failed to delete fd: {}", e);
+                            }
                         }
                     }
                     Future::Fail(e) => {
                         warn!("Invalid HTTP: {}", e);
-                        if i == active_parsers.len() - 1 {
-                            _ = active_parsers.pop();
-                        } else {
-                            active_parsers[i] = active_parsers.pop().unwrap();
-                            continue;
-                        }
+                        let _ = active_parsers.swap_remove(i);
                     }
-                    Future::Wait => {}
+                    Future::Wait => {
+                        i += 1;
+                    }
                 };
-                i += 1;
             }
+            let mut i = 0;
+            while i < active_responders.len() {
+                let responder = &mut active_responders[i];
+                info!("responding to {}", i);
+                match responder.respond() {
+                    Future::Done(()) => {
+                        if let Err(e) = epoll.delete(responder.as_fd()) {
+                            warn!("failed to delete fd: {}", e);
+                        }
+                        active_responders.swap_remove(i);
+                    }
+                    Future::Fail(e) => {
+                        warn!("Failed to respond: {}", e);
+                        if let Err(e) = epoll.delete(responder.as_fd()) {
+                            warn!("failed to delete fd: {}", e);
+                        }
+                        let _ = active_responders.swap_remove(i);
+                    }
+                    Future::Wait => {
+                        i += 1;
+                    }
+                };
+            }
+
             let mut events = [EpollEvent::empty()];
             if let Err(e) = epoll.wait(&mut events, PollTimeout::NONE) {
                 warn!("failed to wait for events: {}", e);
