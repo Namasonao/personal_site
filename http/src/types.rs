@@ -105,7 +105,7 @@ impl Responder {
     pub fn respond(&mut self) -> Future<()> {
         let n = match self.stream.write(&self.bytes[self.sent..]) {
             Ok(n) => n,
-            Err(e) => panic!("RESPOND FAILED: {}", e),
+            Err(e) => return Future::Fail("there was an error during writing"),
         };
         self.sent += n;
         if self.sent == self.bytes.len() {

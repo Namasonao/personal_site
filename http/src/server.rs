@@ -126,7 +126,6 @@ impl<'a> HttpServer<'a> {
             let mut i = 0;
             while i < active_responders.len() {
                 let responder = &mut active_responders[i];
-                info!("responding to {}", i);
                 match responder.respond() {
                     Future::Done(()) => {
                         if let Err(e) = epoll.delete(responder.as_fd()) {
