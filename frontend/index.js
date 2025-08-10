@@ -44,12 +44,12 @@ async function onSubmitNotePress(data) {
 	});
    if (response.status !== 200) {
       domNote.children[0].innerText = "FAILED: " + response.status;
-      const deleteButton = document.createElement("input");
-      deleteButton.type = "button";
+      const deleteButton = document.createElement("button");
       deleteButton.classList.add("delete-button");
       deleteButton.addEventListener("click", (data) => {
          domNote.remove();
       });
+      const icon = document.createElement("i");
       domNote.children[0].appendChild(deleteButton);
       return;
    }
@@ -120,6 +120,13 @@ async function getNotesFromDb() {
 	return await response.json();
 }
 
+function fmt2digit(n) {
+   if (n < 10) {
+      return "0" + n;
+   }
+   return n;
+}
+
 function noteHeader(root) {
 	if (root.apiNote.id === undefined) {
       const header = document.createElement("div");
@@ -127,8 +134,7 @@ function noteHeader(root) {
       header.classList.add("note-header");
       return header;
    }
-	const deleteButton = document.createElement("input");
-	deleteButton.type = "button";
+	const deleteButton = document.createElement("button");
 	deleteButton.classList.add("delete-button");
 	deleteButton.addEventListener("click", (data) => {
 		onDeleteNotePress(data, root)
@@ -142,7 +148,7 @@ function noteHeader(root) {
 	const mm = fullDate.getMinutes();
 	const ss = fullDate.getSeconds();
 
-	time = hh + ":" + mm + ":" + ss;
+	time = fmt2digit(hh) + ":" + fmt2digit(mm) + ":" + fmt2digit(ss);
 	dateDiv.innerText = date + "\t" + time;
 
 	const header = document.createElement("div");

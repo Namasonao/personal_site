@@ -46,16 +46,16 @@
 	}
 	.note-text {
 	}
+
+   .delete-button {
+   }
 	</style>
 </head>
 
 <body>
 <div class="block-div">
 	<h1>Welcome!</h1>
-	<p>This is the website of Basmet. There is nothing to do here. Please go somewhere else.</p>
-</div>
-<div class="block-div">
-	<p>You could go <a href="/notes/">here</a></p>
+	<p>This is the website of Basmet. There is something to do here. Try logging in and adding some notes, they will be remembered!</p>
 </div>
 <div class="block-div" id="login-div" >
    <div hidden>
@@ -75,9 +75,9 @@
 
 <div class="block-div">
 	<form id="note-add">
-		<label for="add-note">Text (TODO: make this stuff look nice):</label><br>
+		<label for="add-note">Note Editor</label><br>
 		<textarea class="whole-note" id="add-note-input" name="text" placeholder="Write down your notes here..."></textarea><br>
-		<input type="button" id="add-note-submit" value="Submit"><br>
+		<input type="button" id="add-note-submit" value="Save"><br>
 	</form>
 </div>
 <div class="block-div" id="note-structure">
